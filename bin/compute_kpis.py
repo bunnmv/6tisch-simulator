@@ -91,26 +91,36 @@ def plot_deploy(allstatsData):
 
     groups = df.groupby('DODAG')
 
+    
+
     for name, group in groups:
         plt.plot(group["x"], group["y"], marker="o", linestyle="", label=name)
-    plt.xlabel('x coordinates (m)')
-    plt.ylabel('y coordinates (m)')
+
+    # plt.scatter(*zip(*coordinates.values()))
+    txt_x_offset = 2.3;
+    txt_y_offset = 0.4;
+    for key in coordinates.keys():
+        txt = 'id:{}'.format(key)
+        plt.annotate(txt, xy=(x[key],y[key]), xytext=(x[key]-txt_x_offset,y[key]-txt_y_offset))
+
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
     plt.title('Deploy area and network distribution')
 
     handles, labels = plt.gca().get_legend_handles_labels()
+
     # sort both labels and handles by labels
+
     labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
     plt.legend(handles, labels)
-    # plt.draw() # draw the plot
-    # plt.pause(5) # show it for 5 seconds
-    # plt.show()
 
     plt.savefig(os.path.join(subfolder, 'deploy.png'),dpi=300)
 
+    # plt.draw() # draw the plot
+    # plt.pause(5) # show it for 5 seconds
+    # plt.show()
     # savefig(subfolder, key + ".cdf")
     # plt.clf()
-
-    
     # txt_x_offset = 0.003;
     # txt_y_offset = 0.0004;
     # plt.scatter(*zip(*self.coordinates.values()))
@@ -274,6 +284,26 @@ def createAllStats(stats):
                 }
             ],
             'joining-time': [
+                {
+                    'name': 'Joining Time',
+                    'unit': 's',
+                    'mean': (
+                        mean(stats['joining_times'])*stats['slot_duration']
+                        if stats['joining_times'] else 'N/A'
+                    ),
+                    'min': (
+                        min(stats['joining_times'])*stats['slot_duration']
+                        if stats['joining_times'] else 'N/A'
+                    ),
+                    'max': (
+                        max(stats['joining_times'])*stats['slot_duration']
+                        if stats['joining_times'] else 'N/A'
+                    ),
+                    '99%': (
+                        np.percentile(stats['joining_times'], 99)*stats['slot_duration']
+                        if stats['joining_times'] else 'N/A'
+                    )
+                },
                 {
                     'name': 'Joining Time',
                     'unit': 'slots',

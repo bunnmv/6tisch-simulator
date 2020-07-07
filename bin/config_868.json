@@ -11,7 +11,7 @@
         "regular": {
             "exec_numSlotframesPerRun":                    null,
             "exec_minutesPerRun":                          600,
-            "exec_randomSeed":                             "random",
+            "exec_randomSeed":                             2074270055270395,
 
             "secjoin_enabled":                             true,
 
@@ -34,7 +34,7 @@
 
             "sf_class":                                    "MSF",
 
-            "tsch_slotDuration":                           0.010,
+            "tsch_slotDuration":                           0.02938,
             "tsch_slotframeLength":                        101,
             "tsch_probBcast_ebProb":                       0.33,
             "tsch_clock_max_drift_ppm":                    0,
@@ -54,14 +54,14 @@
             "conn_random_init_min_pdr":                    0.5,
             "conn_random_init_min_neighbors":              1,
 
-            "phy_numChans":                                16,
+            "phy_numChans":                                34,
 
             "motes_eui64":                                 [],
 
             "roots":                                       [0,1],
-            
-            "band":                                        "2_4Ghz"
-        }
+
+            "band":                                        "868Mhz"
+        }   
     },
     "logging":                                             "all",
     "log_directory_name":                                  "startTime",

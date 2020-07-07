@@ -63,13 +63,15 @@ def main(options):
                 for run in kpis.values():
                     for mote in run.values():
                         if key in mote:
-                            data[curr_combination].append(mote[key])
-
+                            data[curr_combination].append(mote[key]) 
+                data[curr_combination] = [0 if v is None else v for v in data[curr_combination]]                           
         # plot
         try:
+            # data_list = list(data.values())
+            # [0 if v is None else v for v in data_list[0]]
             if key in ['lifetime_AA_years', 'latencies']:
                 plot_cdf(data, key, subfolder)
-            else:
+            else:            
                 plot_box(data, key, subfolder)
 
         except TypeError as e:
