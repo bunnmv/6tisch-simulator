@@ -36,6 +36,8 @@ from . import SimSettings
 from . import SimLog
 from .Mote.Mote import Mote
 from .Mote import MoteDefines as d
+from . import SimConfig
+
 
 aux_counter = 1
 
@@ -843,9 +845,12 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
     """
 
     def _additional_initialization(self):
+        global aux_counter
+        aux_counter = len(self.settings.roots)-1
+
         # additional local variables
         self.coordinates = {}  # (x, y) indexed by mote_id
-        self.pister_hack = PisterHackModel(self.engine)
+        self.pister_hack = PisterHackModel(self.engine, self.settings)
 
         # ConnectivityRandom doesn't need the connectivity matrix. Instead, it
         # initializes coordinates of the motes. Its algorithm is:
@@ -870,6 +875,7 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
         init_min_pdr       = self.settings.conn_random_init_min_pdr
         init_min_neighbors = self.settings.conn_random_init_min_neighbors
         y_offset = round(square_side/2,4)
+
         step = round(square_side/self.settings.exec_numMotes,4)
         # step = 0.01
 
@@ -881,15 +887,10 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
             while mote_is_deployed is False:
 
                 # select a tentative coordinate
-                if target_mote_id == 0:
-                    self.coordinates[target_mote_id] = (0, y_offset)
+                if target_mote_id in self.settings.roots :
+                    self.coordinates[target_mote_id] = (target_mote_id*square_side, y_offset)
                     mote_is_deployed = True
-                    print('DODAG0 ROOT coord: ',self.coordinates[target_mote_id])
-                    continue
-                elif target_mote_id == 1:
-                    self.coordinates[target_mote_id] = (square_side, y_offset)
-                    mote_is_deployed = True
-                    print('DODAG1 ROOT coord: ', self.coordinates[target_mote_id])
+                    print('DODAG{} ROOT coord:{}'.format(target_mote_id, self.coordinates[target_mote_id]))
                     continue
 
                 # coordinate = (
@@ -1044,6 +1045,8 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
                 x_coord = round((square_side - aux_counter*step),2)
                 coord = (x_coord,y_offset)
                 aux_counter += 1
+
+            print('\n mote_id', mote_id , coord)
             return coord
         
 
@@ -1051,77 +1054,91 @@ class PisterHackModel(object):
 
     PISTER_HACK_LOWER_SHIFT  =         40 # dB
     SPEED_OF_LIGHT           =  299792458 # m/s
+    TWO_DOT_FOUR_GHZ         = 2400000000 # Hz
+    EIGHT_SIX_EIGHT_MHZ      = 868000000 # Hz
 
-
-    # Change frequency here to either TWO_DOT_FOUR_GHZ or  9_HUNDRED_MHZ
-    # FREQUENCY = EIGHT_SIX_EIGHT_MHZ
-    # FREQUENCY = TWO_DOT_FOUR_GHZ
-
-    print('\nSELECTED FREQUENCY ', d.FREQUENCY,'Hz\n')
     # RSSI and PDR relationship obtained by experiment; dataset was available
     # at the link shown below:
     # http://wsn.eecs.berkeley.edu/connectivity/?dataset=dust
-    # RSSI_PDR_TABLE_TWO_DOT_FOUR = {
-    #     -97:    0.0000,  # this value is not from experiment
-    #     -96:    0.1494,
-    #     -95:    0.2340,
-    #     -94:    0.4071,
-    #     # <-- 50% PDR is here, at RSSI=-93.6
-    #     -93:    0.6359,
-    #     -92:    0.6866,
-    #     -91:    0.7476,
-    #     -90:    0.8603,
-    #     -89:    0.8702,
-    #     -88:    0.9324,
-    #     -87:    0.9427,
-    #     -86:    0.9562,
-    #     -85:    0.9611,
-    #     -84:    0.9739,
-    #     -83:    0.9745,
-    #     -82:    0.9844,
-    #     -81:    0.9854,
-    #     -80:    0.9903,
-    #     -79:    1.0000,  # this value is not from experiment
-    # }
+    RSSI_PDR_TABLE_TWO_DOT_FOUR = {
+        -97:    0.0000,  # this value is not from experiment
+        -96:    0.1494,
+        -95:    0.2340,
+        -94:    0.4071,
+        # <-- 50% PDR is here, at RSSI=-93.6
+        -93:    0.6359,
+        -92:    0.6866,
+        -91:    0.7476,
+        -90:    0.8603,
+        -89:    0.8702,
+        -88:    0.9324,
+        -87:    0.9427,
+        -86:    0.9562,
+        -85:    0.9611,
+        -84:    0.9739,
+        -83:    0.9745,
+        -82:    0.9844,
+        -81:    0.9854,
+        -80:    0.9903,
+        -79:    1.0000,  # this value is not from experiment
+    }
 
 
     # Radio CC1352R Sentivity 
     # 802.15.4g Mandatory Mode (50 kbps, 2-GFSK, 100 kHz RX Bandwidth) 
     # Sensitivity BER = 10–2 , 868 MHz (–110 dBm)
 
-    # RSSI_PDR_TABLE_868 = {
-    #     -110:   0.0000,
-    #     -109:   0.1494,
-    #     -108:   0.2340,
-    #     -107:   0.4071,
-    #     # <-- 50% PDR is at RSSI=-106.14
-    #     -106:   0.6359,
-    #     -105:   0.6866,
-    #     -104:   0.7476,
-    #     -103:   0.8603,
-    #     -102:   0.8702,
-    #     -101:   0.9324,
-    #     -100:   0.9427,
-    #     -99:    0.9562,
-    #     -98:    0.9611,
-    #     -97:    0.9739,
-    #     -96:    0.9745,
-    #     -95:    0.9844,
-    #     -94:    0.9854,
-    #     -93:    0.9903,
-    #     -92:    1.0000,
-    # }
+    RSSI_PDR_TABLE_EIGHT_SIX_EIGHT = {
+        -110:   0.0000,
+        -109:   0.1494,
+        -108:   0.2340,
+        -107:   0.4071,
+        # <-- 50% PDR is at RSSI=-106.14
+        -106:   0.6359,
+        -105:   0.6866,
+        -104:   0.7476,
+        -103:   0.8603,
+        -102:   0.8702,
+        -101:   0.9324,
+        -100:   0.9427,
+        -99:    0.9562,
+        -98:    0.9611,
+        -97:    0.9739,
+        -96:    0.9745,
+        -95:    0.9844,
+        -94:    0.9854,
+        -93:    0.9903,
+        -92:    1.0000,
+    }
 
-    # RSSI_PDR_TABLE = RSSI_PDR_TABLE_868;
-
-    def __init__(self, sim_engine):
+    def __init__(self, sim_engine, sim_settings):
 
         # singleton
         self.engine   = sim_engine
 
+        self.settings = sim_settings
+
+        if self.settings.band == '2.4Ghz':
+
+            self.FREQUENCY = self.TWO_DOT_FOUR_GHZ
+
+            self.RSSI_PDR_TABLE = self.RSSI_PDR_TABLE_TWO_DOT_FOUR
+
+        else:
+
+            self.FREQUENCY = self.EIGHT_SIX_EIGHT_MHZ
+
+            self.RSSI_PDR_TABLE = self.RSSI_PDR_TABLE_EIGHT_SIX_EIGHT
+
+
+        print('\nSELECTED BAND ', self.FREQUENCY,'Hz\n')
+
+
         # remember what RSSI value is computed for a mote at an ASN; the same
         # RSSI value will be returned for the same motes and the ASN.
         self.rssi_cache = {} # indexed by (src_mote.id, dst_mote.id)
+
+
 
     def compute_mean_rssi(self, src, dst):
         # distance in meters
@@ -1129,11 +1146,14 @@ class PisterHackModel(object):
             src[u'coordinate'],
             dst[u'coordinate']
         )
-
+        
+        if distance == 0:
+            print('\nMote : \n',src[u'mote'].id, 'and Mote: ', dst[u'mote'].id,' are deployed in the same coord', dst[u'coordinate'] )
+            assert distance > 0
         # sqrt and inverse of the free space path loss (fspl)
         free_space_path_loss = (
             old_div(self.SPEED_OF_LIGHT,
-            (4 * math.pi * distance * d.FREQUENCY))
+            (4 * math.pi * distance * self.FREQUENCY))
         )
 
         # simple friis equation in Pr = Pt + Gt + Gr + 20log10(fspl)
@@ -1171,8 +1191,8 @@ class PisterHackModel(object):
         return rssi
 
     def convert_rssi_to_pdr(self, rssi):
-        minRssi = min(d.RSSI_PDR_TABLE.keys())
-        maxRssi = max(d.RSSI_PDR_TABLE.keys())
+        minRssi = min(self.RSSI_PDR_TABLE.keys())
+        maxRssi = max(self.RSSI_PDR_TABLE.keys())
 
         if rssi < minRssi:
             pdr = 0.0
@@ -1180,8 +1200,8 @@ class PisterHackModel(object):
             pdr = 1.0
         else:
             floor_rssi = int(math.floor(rssi))
-            pdr_low    = d.RSSI_PDR_TABLE[floor_rssi]
-            pdr_high   = d.RSSI_PDR_TABLE[floor_rssi + 1]
+            pdr_low    = self.RSSI_PDR_TABLE[floor_rssi]
+            pdr_high   = self.RSSI_PDR_TABLE[floor_rssi + 1]
             # linear interpolation
             pdr = (pdr_high - pdr_low) * (rssi - float(floor_rssi)) + pdr_low
 

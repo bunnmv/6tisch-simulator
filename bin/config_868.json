@@ -58,7 +58,7 @@
 
             "motes_eui64":                                 [],
 
-            "roots":                                       [0,1],
+            "roots":                                       [0],
 
             "band":                                        "868Mhz"
         }   

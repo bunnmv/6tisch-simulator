@@ -1,0 +1,28 @@
+{"cpuID": null, "logRootDirectoryPath": "/Users/marcusbunn/Documents/UFSC/6TiSCH_SIM/forked_simulator/tests/simData", "exec_numSlotframesPerRun": 2403, "exec_minutesPerRun": null, "exec_randomSeed": 7263092949079992026, "secjoin_enabled": true, "app": "AppPeriodic", "app_pkPeriod": 0, "app_pkPeriodVar": 0, "app_pkLength": 90, "app_burstTimestamp": null, "app_burstNumPackets": 0, "rpl_of": "OF0", "rpl_daoPeriod": 0, "rpl_extensions": ["dis_unicast"], "fragmentation": "FragmentForwarding", "sixlowpan_reassembly_buffers_num": 1, "fragmentation_ff_discard_vrb_entry_policy": [], "fragmentation_ff_vrb_table_size": 50, "tsch_max_payload_len": 90, "sf_class": "MSF", "tsch_slotDuration": 0.2938, "tsch_slotframeLength": 51, "tsch_probBcast_ebProb": 0, "tsch_clock_max_drift_ppm": 0, "tsch_clock_frequency": 32768, "tsch_keep_alive_interval": 10, "tsch_tx_queue_size": 10, "tsch_max_tx_retries": 5, "radio_stats_log_period_s": 60, "conn_class": "Linear", "conn_simulate_ack_drop": false, "conn_trace": null, "conn_random_square_side": 0.1, "conn_random_init_min_pdr": 0.5, "conn_random_init_min_neighbors": 1, "phy_numChans": 34, "motes_eui64": [], "exec_numMotes": 3, "logDirectory": "20200706-111534-560", "combinationKeys": [], "_type": "config", "_run_id": null}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "mac.add_addr", "addr": "02-00-00-00-00-01-00-00", "type": "eui64"}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "ipv6.add_addr", "addr": "fe80::1:0", "type": "link-local"}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "tsch.add_slotframe", "length": 51, "slotFrameHandle": 0}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "mac.add_addr", "addr": "02-00-00-00-00-00-00-01", "type": "eui64"}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "ipv6.add_addr", "addr": "fe80::1", "type": "link-local"}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "tsch.add_slotframe", "length": 51, "slotFrameHandle": 0}
+{"_asn": 0, "_mote_id": 2, "_run_id": null, "_type": "mac.add_addr", "addr": "02-00-00-00-00-00-00-02", "type": "eui64"}
+{"_asn": 0, "_mote_id": 2, "_run_id": null, "_type": "ipv6.add_addr", "addr": "fe80::2", "type": "link-local"}
+{"_asn": 0, "_mote_id": 2, "_run_id": null, "_type": "tsch.add_slotframe", "length": 51, "slotFrameHandle": 0}
+{"_asn": 0, "_run_id": null, "_type": "simulator.random_seed", "value": 7263092949079992026}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "ipv6.add_addr", "addr": "fd00::1:0", "type": "global"}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "ipv6.add_addr", "addr": "fd00::1", "type": "global"}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "secjoin.joined"}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "tsch.synced"}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "tsch.add_slotframe", "length": 51, "slotFrameHandle": 1}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "tsch.add_slotframe", "length": 51, "slotFrameHandle": 2}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "tsch.add_cell", "cellOptions": ["RX"], "channelOffset": 24, "neighbor": null, "slotFrameHandle": 1, "slotOffset": 45}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "tsch.add_cell", "cellOptions": ["TX", "RX", "SHARED"], "channelOffset": 0, "neighbor": null, "slotFrameHandle": 0, "slotOffset": 0}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "secjoin.joined"}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "tsch.synced"}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "tsch.add_slotframe", "length": 51, "slotFrameHandle": 1}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "tsch.add_slotframe", "length": 51, "slotFrameHandle": 2}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "tsch.add_cell", "cellOptions": ["RX"], "channelOffset": 16, "neighbor": null, "slotFrameHandle": 1, "slotOffset": 43}
+{"_asn": 0, "_mote_id": 1, "_run_id": null, "_type": "tsch.add_cell", "cellOptions": ["TX", "RX", "SHARED"], "channelOffset": 0, "neighbor": null, "slotFrameHandle": 0, "slotOffset": 0}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "ipv6.add_addr", "addr": "fd00::1:0", "type": "global"}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "ipv6.add_addr", "addr": "fd00::1:0", "type": "global"}
+{"_asn": 0, "_mote_id": 0, "_run_id": null, "_type": "tsch.synced"}

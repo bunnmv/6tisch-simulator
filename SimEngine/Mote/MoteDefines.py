@@ -137,77 +137,12 @@ RADIO_STATE_OFF                             = u'off'
 
 
 
-# === connectivity
-
-
-TWO_DOT_FOUR_GHZ         = 2400000000 # Hz
-EIGHT_SIX_EIGHT_MHZ      = 868000000 # Hz
-
-
-RSSI_PDR_TABLE_TWO_DOT_FOUR = {
-	-97:    0.0000,  # this value is not from experiment
-	-96:    0.1494,
-	-95:    0.2340,
-	-94:    0.4071,
-	# <-- 50% PDR is here, at RSSI=-93.6
-	-93:    0.6359,
-	-92:    0.6866,
-	-91:    0.7476,
-	-90:    0.8603,
-	-89:    0.8702,
-	-88:    0.9324,
-	-87:    0.9427,
-	-86:    0.9562,
-	-85:    0.9611,
-	-84:    0.9739,
-	-83:    0.9745,
-	-82:    0.9844,
-	-81:    0.9854,
-	-80:    0.9903,
-	-79:    1.0000,  # this value is not from experiment
-}
-
-
-# Radio CC1352R Sentivity 
-# 802.15.4g Mandatory Mode (50 kbps, 2-GFSK, 100 kHz RX Bandwidth) 
-# Sensitivity BER = 10–2 , 868 MHz (–110 dBm)
-
-RSSI_PDR_TABLE_EIGHT_SIX_EIGHT = {
-	-110:   0.0000,
-	-109:   0.1494,
-	-108:   0.2340,
-	-107:   0.4071,
-	# <-- 50% PDR is at RSSI=-106.14
-	-106:   0.6359,
-	-105:   0.6866,
-	-104:   0.7476,
-	-103:   0.8603,
-	-102:   0.8702,
-	-101:   0.9324,
-	-100:   0.9427,
-	-99:    0.9562,
-	-98:    0.9611,
-	-97:    0.9739,
-	-96:    0.9745,
-	-95:    0.9844,
-	-94:    0.9854,
-	-93:    0.9903,
-	-92:    1.0000,
-}
-
-
-
-
-
-
-
-
 ##################### CHANGE WITH BAND CONFIG #####################
 
 # TWO_DOT_FOUR_GHZ = 0
 
 # EIGHT_SIX_EIGHT_MHZ = 1
-
+# SimConfig.SimConfig._band == '2_4Ghz'
 
 BAND = 1
 
@@ -215,21 +150,9 @@ if not BAND:
 
 	TSCH_HOPPING_SEQUENCE = TSCH_HOPPING_SEQUENCE_TWO_DOT_FOUR
 
-
-	FREQUENCY = TWO_DOT_FOUR_GHZ
-
-
-	RSSI_PDR_TABLE = RSSI_PDR_TABLE_TWO_DOT_FOUR
-
 else:
 
 	TSCH_HOPPING_SEQUENCE = TSCH_HOPPING_SEQUENCE_EIGHT_SIX_EIGHT
-
-
-	FREQUENCY = EIGHT_SIX_EIGHT_MHZ
-
-
-	RSSI_PDR_TABLE = RSSI_PDR_TABLE_EIGHT_SIX_EIGHT
 
 
 ##################### CHANGE WITH BAND CONFIG #####################

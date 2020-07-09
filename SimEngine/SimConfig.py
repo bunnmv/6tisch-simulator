@@ -135,16 +135,17 @@ class SimConfig(dict):
 
         assert SimConfig._log_directory_name is None
 
+
         # print(self.config)
         # determine log_directory_name
         if   self.log_directory_name == u'startTime':
-            log_directory_name = u'{0}_{1}-{2:03d}'.format(
-                self.config.settings.regular.band,
+            log_directory_name = u'{0}-{1:03d}_{2}'.format(
                 time.strftime(
                     "%Y%m%d-%H%M%S",
                     time.localtime(int(SimConfig._startTime))
                 ),
-                int(round(SimConfig._startTime * 1000)) % 1000
+                int(round(SimConfig._startTime * 1000)) % 1000,
+                self.config.settings.regular.band,
             )
         elif self.log_directory_name == u'hostname':
             # hostname is stored in platform.uname()[1]

@@ -10,7 +10,7 @@
         },
         "regular": {
             "exec_numSlotframesPerRun":                    null,
-            "exec_minutesPerRun":                          600,
+            "exec_minutesPerRun":                          60,
             "exec_randomSeed":                             "random",
 
             "secjoin_enabled":                             true,
@@ -58,9 +58,9 @@
 
             "motes_eui64":                                 [],
 
-            "roots":                                       [0,1],
+            "roots":                                       [0],
             
-            "band":                                        "2_4Ghz"
+            "band":                                        "2.4Ghz"
         }
     },
     "logging":                                             "all",

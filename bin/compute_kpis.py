@@ -52,7 +52,7 @@ def openfile(func):
 # =========================== helpers =========================================
 
 
-def plot_deploy(allstatsData):
+def plot_deploy(allstatsData,file_settings):
     # moteData = {k: v for k, v in allstatsData.items() }
     global subfolder
     coordinates = {}
@@ -105,7 +105,8 @@ def plot_deploy(allstatsData):
 
     plt.xlabel('x (m)')
     plt.ylabel('y (m)')
-    plt.title('Deploy area and network distribution')
+
+    plt.title('Deploy area and network distribution - {} '.format(file_settings['band']))
 
     handles, labels = plt.gca().get_legend_handles_labels()
 
@@ -640,7 +641,7 @@ def kpis_all(inputfile):
                 del motestats['join_asn']
 
 
-    plot_deploy(allstats[0])
+    plot_deploy(allstats[0],file_settings)
 
     return allstats
 

@@ -365,9 +365,6 @@ class DiscreteEventEngine(threading.Thread):
 
 class SimEngine(DiscreteEventEngine):
 
-    DAGROOT_ID = 0
-    DAGROOT_ID_2 = 1
-
     def _init_additional_local_variables(self):
         self.settings                   = SimSettings.SimSettings()
 
@@ -435,7 +432,7 @@ class SimEngine(DiscreteEventEngine):
         # print(self.motes[3].id)
 
         for mote in self.motes:
-            if mote.id == self.DAGROOT_ID or mote.id == self.DAGROOT_ID_2:
+            if mote.id in self.settings.roots:
                 mote.setDagRoot()
 
         # select dagRoot MODIFIED
