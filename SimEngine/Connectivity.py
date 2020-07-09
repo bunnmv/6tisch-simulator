@@ -39,7 +39,7 @@ from .Mote import MoteDefines as d
 from . import SimConfig
 
 
-aux_counter = 1
+aux_counter = 0
 
 # =========================== defines =========================================
 
@@ -845,12 +845,16 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
     """
 
     def _additional_initialization(self):
-        global aux_counter
-        aux_counter = len(self.settings.roots)-1
-
         # additional local variables
         self.coordinates = {}  # (x, y) indexed by mote_id
         self.pister_hack = PisterHackModel(self.engine, self.settings)
+
+        global aux_counter 
+        if self.settings.deploy == 'linear':
+            # aux is incremented after each deploy
+            aux_counter = 0
+        if self.settings.deploy == 'linear-split':
+            aux_counter = len(self.settings.roots)-1
 
         # ConnectivityRandom doesn't need the connectivity matrix. Instead, it
         # initializes coordinates of the motes. Its algorithm is:
@@ -876,8 +880,8 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
         init_min_neighbors = self.settings.conn_random_init_min_neighbors
         y_offset = round(square_side/2,4)
 
-        step = round(square_side/self.settings.exec_numMotes,4)
-        # step = 0.01
+        # step = round(square_side/self.settings.exec_numMotes,4)
+        step = 0.01
 
         assert init_min_neighbors <= self.settings.exec_numMotes
 
@@ -887,19 +891,14 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
             while mote_is_deployed is False:
 
                 # select a tentative coordinate
-                if target_mote_id in self.settings.roots :
-                    self.coordinates[target_mote_id] = (target_mote_id*square_side, y_offset)
-                    mote_is_deployed = True
-                    print('DODAG{} ROOT coord:{}'.format(target_mote_id, self.coordinates[target_mote_id]))
-                    continue
+                # if target_mote_id in self.settings.roots :
+                #     self.coordinates[target_mote_id] = (target_mote_id*square_side, y_offset)
+                #     mote_is_deployed = True
+                #     print('DODAG{} ROOT coord:{}'.format(target_mote_id, self.coordinates[target_mote_id]))
+                #     continue
 
-                # coordinate = (
-                #     square_side * random.random(),
-                #     square_side * random.random()
-                # )
-
-                coordinate = self._calculate_linear_coordinates(square_side,target_mote_id,step,y_offset)
-
+                coordinate , mote_is_deployed = self._abstract_deploy_function(square_side,target_mote_id,step,y_offset,self.settings.deploy)
+                # print('\n MOTE: ',target_mote_id,coordinate)
                 # count deployed motes who have enough PDR values to this
                 # mote
                 good_pdr_count = 0
@@ -917,10 +916,6 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
                         }
                     )
                     pdr = self.pister_hack.convert_rssi_to_pdr(rssi)
-
-                    # distance = self.pister_hack._get_distance_in_meters(self.coordinates[deployed_mote_id],coordinate) round(distance,2)
-
-                    # print('mote:', target_mote_id,'==> mote:', deployed_mote_id,' \n distance (m)', round(distance,2),' \n PDR:', round(pdr,2))
                     # memorize the rssi and pdr values at the base channel
                     self.set_pdr_both_directions(
                         target_mote_id,
@@ -984,8 +979,7 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
                                     channel,
                                     rssi
                                 )
-                        distance = self.pister_hack._get_distance_in_meters(self.coordinates[deployed_mote_id],coordinate)
-
+                        # distance = self.pister_hack._get_distance_in_meters(self.coordinates[deployed_mote_id],coordinate)
                         # print('\nMote:', target_mote_id,' at coord:',coordinate,' ===> Link to mote:',deployed_mote_id,'at coord', self.coordinates[deployed_mote_id],'\n distance:', round(distance,2), ' \n pdr:', pdr, ' \n rssi:', rssi)
                     mote_is_deployed = True
                 else:
@@ -1034,20 +1028,90 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
             channel,
             self.LINK_NONE[u'pdr']
         )
-    def _calculate_linear_coordinates(self,square_side,mote_id,step,y_offset):
-            #must be linear on both directions, or at least in one first.
-            x_coord = 0;
-            global aux_counter
-            if not(mote_id % 2): # even
-                x_coord =  round(aux_counter*step,2)
-                coord  =  (x_coord,y_offset);
-            else: #odd
-                x_coord = round((square_side - aux_counter*step),2)
-                coord = (x_coord,y_offset)
-                aux_counter += 1
 
-            print('\n mote_id', mote_id , coord)
-            return coord
+
+    def _abstract_deploy_function(self,square_side,mote_id,step,y_offset,deploy='linear'):
+        
+        if deploy == 'linear':
+            # Linear creates fixed spacing on motes, meaning roots would be place together. 
+            # User linear-split if more than one root.
+            assert len(self.settings.roots) == 1
+            return self._calculate_linear_coordinates(square_side,mote_id,step,y_offset)
+         
+
+    def _calculate_random_coordinates(self,square_side,mote_id):
+
+        return (square_side * random.random(),square_side * random.random())
+
+    def _calculate_linear_coordinates(self,square_side,mote_id,step,y_offset,rows=1):
+        # must be linear with multiple rows, for now row = 1
+        # Single root in the left side
+        global aux_counter
+
+        mote_is_deployed = False
+
+       
+        # ammount of motes in a single row.
+        fits = float(math.floor(square_side/step))
+
+
+        #integer related to collumns
+
+        col_aux = (aux_counter%(fits+1))
+
+        # integer related to the amount of motes in a single square side.
+        # if rows = 1 there will be a second row only if the amount of motes do not fit
+        # if rows > 1 the motes are divided in this quanity of rows while behaving the step.
+        row_aux = float(math.floor(aux_counter/(fits+1)))
+
+        # coordinates
+        x_coord = round(col_aux*step,2)
+
+        y_coord = round((row_aux+1)*y_offset,2)
+
+        coord  =  (x_coord,y_coord)
+
+        if mote_id in self.settings.roots:
+            # coord = (mote_id*square_side, (aux_counter%roots_per_row)+y_offset)
+            mote_is_deployed = True
+            print('DODAG{} ROOT coord:{}'.format(mote_id, coord))
+        aux_counter += 1
+
+        # print('\n mote_id', mote_id , coord)
+        return coord,mote_is_deployed
+
+    def _calculate_even_odd_split_coordinates(self,square_side,mote_id,step,y_offset,rows=1):
+         # must be linear with multiple rows, for now row = 1
+        # This one is just on first
+        # roots in the both extremes of the square
+        global aux_counter
+        x_coord = 0
+
+
+        if not(mote_id % 2): # even
+            x_coord =  round(aux_counter*step,2)
+            coord  =  (x_coord,y_offset);
+        else: #odd
+            x_coord = round((square_side - aux_counter*step),2)
+            coord = (x_coord,y_offset)
+            aux_counter += 1
+        return coord
+
+    def _calculate_circular_coordinates(self,square_side,mote_id,step,y_offset):
+        #roots in the middle of the circle
+        x_coord = 0;
+        global aux_counter
+        if not(mote_id % 2): # even
+            x_coord =  round(aux_counter*step,2)
+            coord  =  (x_coord,y_offset);
+        else: #odd
+            x_coord = round((square_side - aux_counter*step),2)
+            coord = (x_coord,y_offset)
+            aux_counter += 1
+
+        print('\n mote_id', mote_id , coord)
+        return coord,mode_t
+
         
 
 class PisterHackModel(object):
@@ -1148,7 +1212,7 @@ class PisterHackModel(object):
         )
         
         if distance == 0:
-            print('\nMote : \n',src[u'mote'].id, 'and Mote: ', dst[u'mote'].id,' are deployed in the same coord', dst[u'coordinate'] )
+            print('\nMote :',src[u'mote'].id, 'and Mote: ', dst[u'mote'].id,' are deployed in the same coord', dst[u'coordinate'] )
             assert distance > 0
         # sqrt and inverse of the free space path loss (fspl)
         free_space_path_loss = (

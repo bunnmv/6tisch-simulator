@@ -337,8 +337,8 @@ class DiscreteEventEngine(threading.Thread):
         slotframe_iteration = int(old_div(self.asn, self.settings.tsch_slotframeLength))
 
         # print
-        # if self.verbose:
-            # print(u'   slotframe_iteration: {0}/{1}'.format(slotframe_iteration, self.settings.exec_numSlotframesPerRun-1))
+        if self.verbose:
+            print(u'   slotframe_iteration: {0}/{1}'.format(slotframe_iteration, self.settings.exec_numSlotframesPerRun-1))
 
         # schedule next statistics collection
         self.scheduleAtAsn(

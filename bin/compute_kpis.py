@@ -29,14 +29,16 @@ import pandas as pd
 
 subfolder = None
 
-DAGROOT_ID_0 = 0  # we assume first mote is DAGRoot
-DAGROOT_IP_0 = 'fd00::1:0'
+#DAGROOT_ID_0 = 0  # we assume first mote is DAGRoot
+#DAGROOT_IP_0 = 'fd00::1:0'
 
 
 #second dagroot
 
-DAGROOT_ID_1 = 1
-DAGROOT_IP_1 = 'fd00::1'
+#DAGROOT_ID_1 = 1
+#DAGROOT_IP_1 = 'fd00::1'
+
+DAGROOT_IPs= ['fd00::1:0','fd00::1']
 
 
 BATTERY_AA_CAPACITY_mAh = 2821.5
@@ -67,21 +69,15 @@ def plot_deploy(allstatsData,file_settings):
                     coordinates[k] = new_v
                 elif new_k.startswith('dodagRoot'):
                     # labels[k][new_k] = new_v
-                    if new_v == DAGROOT_IP_0:
-                        labels[k] = 'DODAG 0 - Mote'
-                    else:
-                        labels[k] = 'DODAG 1 - Mote'
+                    labels[k] = 'DODAG{} - Mote'.format(DAGROOT_IPs.index(new_v))
                 if 'dodagRoot' not in v:
-                    if k == 0:
-                        labels[k] = 'DODAG 0 - Root'
-                    elif k == 1:
-                        labels[k] = 'DODAG 1 - Root'
+                    #either this mote is a root or it was not connected
+                    if k in file_settings['roots']:
+                        labels[k] = 'DODAG{} - Root'.format(k)
                     else:
                         labels[k] = 'NOT CONNECTED'
 
-    # print(coordinates.values())    
-    # plt.scatter(*zip(*coordinates.values()))   
-    # plt.show()    
+   
 
     x_o, y_o = zip(*coordinates.values())
     x = [i * 1000 for i in x_o]
@@ -91,12 +87,9 @@ def plot_deploy(allstatsData,file_settings):
 
     groups = df.groupby('DODAG')
 
-    
-
     for name, group in groups:
         plt.plot(group["x"], group["y"], marker="o", linestyle="", label=name)
 
-    # plt.scatter(*zip(*coordinates.values()))
     txt_x_offset = 2.3;
     txt_y_offset = 0.4;
     for key in coordinates.keys():
@@ -116,25 +109,6 @@ def plot_deploy(allstatsData,file_settings):
     plt.legend(handles, labels)
 
     plt.savefig(os.path.join(subfolder, 'deploy.png'),dpi=300)
-
-    # plt.draw() # draw the plot
-    # plt.pause(5) # show it for 5 seconds
-    # plt.show()
-    # savefig(subfolder, key + ".cdf")
-    # plt.clf()
-    # txt_x_offset = 0.003;
-    # txt_y_offset = 0.0004;
-    # plt.scatter(*zip(*self.coordinates.values()))
-    # for key in self.coordinates.keys():
-    #     item = self.coordinates[key]
-        
-    #     if key > 1:
-    #         txt = 'id:{}'.format(key)
-    #     else:
-    #         txt = 'root{}'.format(key)
-    #     plt.annotate(txt, xy=(item[0],item[1]), xytext=(item[0]-txt_x_offset,item[1]-txt_y_offset))
-    # plt.draw() # draw the plot
-    # plt.pause(5) # show it for 5 seconds
 
 def mean(numbers):
     return float(sum(numbers)) / max(len(numbers), 1)
@@ -355,6 +329,8 @@ def kpis_all(inputfile):
 
     file_settings = json.loads(inputfile.readline())  # first line contains settings
 
+    assert len(DAGROOT_IPs) >= len(file_settings['roots'])
+
     # === gather raw stats
 
     for line in inputfile:
@@ -387,7 +363,7 @@ def kpis_all(inputfile):
             mote_id    = logline['_mote_id']
 
             # only log non-dagRoot sync times
-            if mote_id == DAGROOT_ID_0 or mote_id == DAGROOT_ID_1:
+            if mote_id in file_settings['roots']:
                 # break from loop skip this run.
                 continue
 
@@ -401,7 +377,7 @@ def kpis_all(inputfile):
             mote_id    = logline['_mote_id']
 
             # only log non-dagRoot join times
-            if mote_id == DAGROOT_ID_0 or mote_id == DAGROOT_ID_1:
+            if mote_id in file_settings['roots']:
                 continue
 
             # populate
@@ -420,7 +396,8 @@ def kpis_all(inputfile):
             # print(mote_id, dstIp)
 
             # only log upstream packets 
-            if dstIp != DAGROOT_IP_0 and dstIp != DAGROOT_IP_1:
+            # if dstIp != DAGROOT_IP_0 and dstIp != DAGROOT_IP_1:
+            if dstIp not in DAGROOT_IPs:
                 # skips this run
                 # maybe they skip it because the last hop is not counted?
                 continue
@@ -445,7 +422,9 @@ def kpis_all(inputfile):
             # only log upstream packets 
             # Continue gets of the if
 
-            if (dstIp != DAGROOT_IP_0 and dstIp != DAGROOT_IP_1):
+            # if (dstIp != DAGROOT_IP_0 and dstIp != DAGROOT_IP_1):
+
+            if dstIp not in DAGROOT_IPs:
                 continue
             
             allstats[run_id][mote_id]['upstream_pkts'][appcounter]['hops']   = (
@@ -458,7 +437,7 @@ def kpis_all(inputfile):
             mote_id    = logline['_mote_id']
 
             # only log non-dagRoot charge 
-            if mote_id == DAGROOT_ID_0 or mote_id == DAGROOT_ID_1:
+            if mote_id in file_settings['roots']:
                 continue 
 
             # logline[slot_type] contains the amount of slots that the currently mote operated in.
@@ -475,29 +454,11 @@ def kpis_all(inputfile):
             allstats[run_id][mote_id]['charge']     = charge
 
         elif logline['_type'] == SimLog.LOG_RPL_JOIN_DAG['type']:
-            # for now roots are hardcoded, in future will be set as parameters in the config file
-
-            # dodag_root_ip = logline['_joined_dag']
-            # assert dodag_root_ip is not None
-            # if dodag_root_ip == DAGROOT_IP:
-            #     dodagId = 'DODAG1'
-            # else:
-            #     dodagId = 'DODAG2'
- 
-            # if (dodagId not in allstats[run_id]):
-            #     allstats[run_id][dodagId] = {}
-
-            # if (mote_id not in allstats[run_id][dodagId]):
-            #     allstats[run_id][dodagId][mote_id] = {}
-
 
             allstats[run_id][mote_id]['dodagRoot'] = logline['_joined_dag']
 
           
         elif logline['_type'] == SimLog.LOG_DEPLOY_COORDINATES['type']:
-            # print('value {}'.format(logline['_coordinates']))
-            # print(logline['_coordinates'])
-
 
             allstats[run_id][mote_id]['coordinates'] = logline['_coordinates']
 
@@ -506,7 +467,7 @@ def kpis_all(inputfile):
     # === compute advanced motestats
     for (run_id, per_mote_stats) in list(allstats.items()):
         for (mote_id, motestats) in list(per_mote_stats.items()):
-            if mote_id != DAGROOT_ID_0 and mote_id != DAGROOT_ID_1:
+            if mote_id not in file_settings['roots']:
 
                 if (motestats['sync_asn'] is not None) and (motestats['charge_asn'] is not None):
                     # avg_current, lifetime_AA
@@ -517,8 +478,7 @@ def kpis_all(inputfile):
                         ):
                         motestats['lifetime_AA_years'] = 'N/A'
                     else:
-                        # print(motestats['charge'],motestats['charge_asn'],motestats['sync_asn'])
-                        # Motes count the type of slots they operated in charge.
+                        # Motes count how many slots they operated in for each type of slot.
                         # charge asn is the last recoreded asn with a radio stat msg. (network life)
                         # the asns where the mote was not synced are ignored.
                         # the result is multiplied by the slot length in seconds.
@@ -549,23 +509,16 @@ def kpis_all(inputfile):
 
     stats = {}
     stats['global'] = {}
-    stats[DAGROOT_IP_0] = {}
-    stats[DAGROOT_IP_1] = {}
+    # if there is only one root we do not need separeted statistics
+    if len(file_settings['roots']) > 1:
+        for root in file_settings['roots']:
+            stats['DODAG_{}'.format(root)] = {}
 
     for (run_id, per_mote_stats) in list(allstats.items()):
 
         #-- define stats
 
-        # app_packets_sent = 0
-        # app_packets_received = 0
-        # app_packets_lost = 0
-        # joining_times = []
-        # us_latencies = []
-        # current_consumed = []
-        # lifetimes = []
-        # slot_duration = file_settings['tsch_slotDuration']
-
-        # reset for each run
+        # reset for EACH RUN
         # global counters
         stats['global'] =  {
             'network':[],
@@ -580,51 +533,44 @@ def kpis_all(inputfile):
             'slot_duration':file_settings['tsch_slotDuration']
         }
 
-        stats[DAGROOT_IP_0] = {
-            'network':[],
-            'network_size': 0,
-            'app_packets_sent': 0,
-            'app_packets_received': 0,
-            'app_packets_lost': 0,
-            'joining_times': [],
-            'us_latencies':[],
-            'current_consumed':[],
-            'lifetimes':[],
-            'slot_duration':file_settings['tsch_slotDuration']
-        }
-
-        stats[DAGROOT_IP_1] = {
-            'network':[],
-            'network_size': 0,
-            'app_packets_sent': 0,
-            'app_packets_received': 0,
-            'app_packets_lost': 0,
-            'joining_times': [],
-            'us_latencies':[],
-            'current_consumed':[],
-            'lifetimes':[],
-            'slot_duration':file_settings['tsch_slotDuration']
-        }
-
+        # if there is only one root we do not need separeted statistics
+        if len(file_settings['roots']) > 1:
+            for root in file_settings['roots']:
+                stats['DODAG_{}'.format(root)] = {
+                    'network':[],
+                    'network_size': 0,
+                    'app_packets_sent': 0,
+                    'app_packets_received': 0,
+                    'app_packets_lost': 0,
+                    'joining_times': [],
+                    'us_latencies':[],
+                    'current_consumed':[],
+                    'lifetimes':[],
+                    'slot_duration':file_settings['tsch_slotDuration']
+                }
 
         #-- compute stats
-
         for (mote_id, motestats) in list(per_mote_stats.items()):
-            if mote_id == DAGROOT_ID_0 or mote_id == DAGROOT_ID_1:
+            if mote_id in file_settings['roots']:
                 continue
 
-            createSingleStats(stats['global'],mote_id,motestats);
-            if 'dodagRoot' in motestats:
-                if motestats['dodagRoot'] == DAGROOT_IP_0:
-                    createSingleStats(stats[DAGROOT_IP_0],mote_id,motestats);
+            createSingleStats(stats['global'],mote_id,motestats)
 
-                elif motestats['dodagRoot'] == DAGROOT_IP_1:
-                    createSingleStats(stats[DAGROOT_IP_1],mote_id,motestats);
+            # Assert dodag log is present
+            # if there is only one root we do not need separeted statistics
+            if 'dodagRoot' in motestats and len(file_settings['roots']) > 1:
+                createSingleStats(
+                    stats['DODAG_{}'.format(DAGROOT_IPs.index(motestats['dodagRoot']))],
+                    mote_id,
+                    motestats)
 
         #-- save stats
         allstats[run_id]['global-stats'] = createAllStats(stats['global'])
-        allstats[run_id][DAGROOT_IP_0] = createAllStats(stats[DAGROOT_IP_0])
-        allstats[run_id][DAGROOT_IP_1] = createAllStats(stats[DAGROOT_IP_1])
+
+        # if there is only one root we do not need separeted statistics
+        if len(file_settings['roots']) > 1:
+            for root in file_settings['roots']:
+                allstats[run_id]['DODAG_{}-stats'.format(root)] = createAllStats(stats['DODAG_{}'.format(root)])
 
     # === remove unnecessary stats
 
@@ -641,6 +587,7 @@ def kpis_all(inputfile):
                 del motestats['join_asn']
 
 
+    # plot deploy of first run
     plot_deploy(allstats[0],file_settings)
 
     return allstats

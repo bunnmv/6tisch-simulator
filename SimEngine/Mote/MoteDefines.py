@@ -142,7 +142,6 @@ RADIO_STATE_OFF                             = u'off'
 # TWO_DOT_FOUR_GHZ = 0
 
 # EIGHT_SIX_EIGHT_MHZ = 1
-# SimConfig.SimConfig._band == '2_4Ghz'
 
 BAND = 1
 

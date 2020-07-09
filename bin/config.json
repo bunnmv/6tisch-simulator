@@ -11,7 +11,7 @@
         "regular": {
             "exec_numSlotframesPerRun":                    null,
             "exec_minutesPerRun":                          60,
-            "exec_randomSeed":                             "random",
+            "exec_randomSeed":                             2074270055270395,
 
             "secjoin_enabled":                             true,
 
@@ -57,6 +57,8 @@
             "phy_numChans":                                16,
 
             "motes_eui64":                                 [],
+
+            "deploy":                                      "linear",
 
             "roots":                                       [0],
             

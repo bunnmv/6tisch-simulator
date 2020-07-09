@@ -216,12 +216,12 @@ class SecJoin(object):
     def _retransmit_join_request(self):
         if not self.mote.tsch.getIsSync():
             # we are desynchronized; give it up
-            print('NOT SYNC', self.mote.id)
+            # print('NOT SYNC', self.mote.id)
             return
         elif  self.getIsJoined() is True:
             # do nothing; this could happen when it received a response at the
             # same slot
-            print('Already joined', self.mote.id)
+            # print('Already joined', self.mote.id)
             pass
         elif self._retransmission_count == self.MAX_RETRANSMIT:
 
@@ -253,7 +253,7 @@ class SecJoin(object):
 
     def _send_join_request(self):
         # log
-        print('\njoinRequest',self.mote.id)
+        # print('\njoinRequest',self.mote.id)
         self.log(
             SimEngine.SimLog.LOG_SECJOIN_TX,
             {
