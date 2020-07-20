@@ -145,7 +145,7 @@ class SimConfig(dict):
                     time.localtime(int(SimConfig._startTime))
                 ),
                 int(round(SimConfig._startTime * 1000)) % 1000,
-                self.config.settings.regular.band,
+                self.config.settings.regular.band
             )
         elif self.log_directory_name == u'hostname':
             # hostname is stored in platform.uname()[1]

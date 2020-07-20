@@ -40,7 +40,7 @@ from . import SimConfig
 
 
 aux_counter = 0
-
+root_coord = [(0.0,0.0)]
 # =========================== defines =========================================
 
 CONN_TYPE_TRACE         = u'trace'
@@ -177,6 +177,8 @@ class Connectivity(object):
             assert channel in d.TSCH_HOPPING_SEQUENCE[:self.num_channels]
 
             for listener_id in receivers_by_channel[channel]:
+
+                # receivers_by_channel[channel] = array of mote ids: [0,2. ..]
                 # list the transmissions that listener can hear and lock to the earliest one
                 lockon_transmission = None
                 lockon_random_value = None
@@ -184,6 +186,7 @@ class Connectivity(object):
                 detected_transmissions = 0
 
                 # deal with collisions
+                # multiple transmissions in this RX channel
                 if len(transmissions_by_channel[channel]) > 1:
                     for t in transmissions_by_channel[channel]:
                         # random_value will be used for comparison against PDR
@@ -258,6 +261,8 @@ class Connectivity(object):
                     detected_transmissions = 1
 
                     lockon_random_value = random.random()
+                    # there is only one mote tx in that channel 
+                    # and its id is the first in the vector where the channel is the key
                     lockon_transmission = transmissions_by_channel[channel][0]
                     packet_pdr = self.get_pdr(
                         src_id  = lockon_transmission[u'tx_mote_id'],
@@ -426,7 +431,7 @@ class Connectivity(object):
         )
 
         # PDR of the interfering transmissions
-        interference_pdr = self._rssi_to_pdr(interference_rssi)
+        interference_pdr = self._rssi_to_pdr(interference_rssi,self.settings.band)
 
         # === compute the resulting PDR
 
@@ -449,13 +454,13 @@ class Connectivity(object):
         return 10 * math.log10(mW)
 
     @staticmethod
-    def _rssi_to_pdr(rssi):
+    def _rssi_to_pdr(rssi,settings_band):
         """
         rssi and pdr relationship obtained by experiment below
         http://wsn.eecs.berkeley.edu/connectivity/?dataset=dust
         """
 
-        rssi_pdr_table = {
+        rssi_pdr_table_two_dot_four = {
             -97:    0.0000,  # this value is not from experiment
             -96:    0.1494,
             -95:    0.2340,
@@ -477,6 +482,38 @@ class Connectivity(object):
             -80:    0.9903,
             -79:    1.0000,  # this value is not from experiment
         }
+
+
+        rssi_pdr_table_eight_six_eight = {
+            -110:   0.0000,
+            -109:   0.1494,
+            -108:   0.2340,
+            -107:   0.4071,
+            # <-- 50% PDR is at RSSI=-106.14
+            -106:   0.6359,
+            -105:   0.6866,
+            -104:   0.7476,
+            -103:   0.8603,
+            -102:   0.8702,
+            -101:   0.9324,
+            -100:   0.9427,
+            -99:    0.9562,
+            -98:    0.9611,
+            -97:    0.9739,
+            -96:    0.9745,
+            -95:    0.9844,
+            -94:    0.9854,
+            -93:    0.9903,
+            -92:    1.0000,
+        }
+
+        if settings_band == '2.4Ghz':
+            rssi_pdr_table = rssi_pdr_table_two_dot_four
+        elif settings_band == '868Mhz':
+            rssi_pdr_table = rssi_pdr_table_eight_six_eight
+        else:
+            #should not happen
+            assert False
 
         minRssi = min(rssi_pdr_table.keys())
         maxRssi = max(rssi_pdr_table.keys())
@@ -878,10 +915,16 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
         square_side        = self.settings.conn_random_square_side 
         init_min_pdr       = self.settings.conn_random_init_min_pdr
         init_min_neighbors = self.settings.conn_random_init_min_neighbors
-        y_offset = round(square_side/2,4)
-
         # step = round(square_side/self.settings.exec_numMotes,4)
-        step = 0.01
+        y_step = self.settings.mote_distance
+
+        if self.settings.motes_by_line:
+            #should be either null or a value that represents the amount of lines used
+            x_step = round(square_side/self.settings.motes_by_line,4)
+            # TODO: allow a square method that enforces ystep to be equal to x_step enforced by the self.settings.motes_by_line
+        else:
+            # if null, they will create a square.
+            x_step = y_step
 
         assert init_min_neighbors <= self.settings.exec_numMotes
 
@@ -897,8 +940,8 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
                 #     print('DODAG{} ROOT coord:{}'.format(target_mote_id, self.coordinates[target_mote_id]))
                 #     continue
 
-                coordinate , mote_is_deployed = self._abstract_deploy_function(square_side,target_mote_id,step,y_offset,self.settings.deploy)
-                # print('\n MOTE: ',target_mote_id,coordinate)
+                coordinate , mote_is_deployed = self._abstract_deploy_function(square_side,target_mote_id,x_step,y_step,len(self.mote_id_list),self.settings.deploy)
+                print('\n MOTE: ',target_mote_id,coordinate)
                 # count deployed motes who have enough PDR values to this
                 # mote
                 good_pdr_count = 0
@@ -1030,46 +1073,120 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
         )
 
 
-    def _abstract_deploy_function(self,square_side,mote_id,step,y_offset,deploy='linear'):
+    def _abstract_deploy_function(self,square_side,mote_id,x_step,y_step,mote_qty,deploy='linear'):
         
         if deploy == 'linear':
             # Linear creates fixed spacing on motes, meaning roots would be place together. 
-            # User linear-split if more than one root.
+            # User split if more than one root.
             assert len(self.settings.roots) == 1
-            return self._calculate_linear_coordinates(square_side,mote_id,step,y_offset)
-         
+            return self._calculate_linear_coordinates(square_side,mote_id,x_step,y_step,mote_qty)
+        elif deploy == 'split':
+            assert len(self.settings.roots) == 1
+            return self._calculate_split_coordinates(square_side,mote_id,x_step,y_step,mote_qty)
 
     def _calculate_random_coordinates(self,square_side,mote_id):
 
         return (square_side * random.random(),square_side * random.random())
 
-    def _calculate_linear_coordinates(self,square_side,mote_id,step,y_offset,rows=1):
-        # must be linear with multiple rows, for now row = 1
-        # Single root in the left side
+
+    def _calculate_linear_matrix_coordinates(self,square_side,mote_id,x_step,y_step,mote_qty,mote_fit):
+
+        # root mote will be deployed in the middle with motes lined around it
+        # x x x x x x x x 
+        # x x x r x x x x 
+        # x x x x x x x x 
         global aux_counter
+        global root_coord
+
 
         mote_is_deployed = False
 
-       
-        # ammount of motes in a single row.
-        fits = float(math.floor(square_side/step))
-
+        if mote_id in self.settings.roots:
+            x_coord = round(square_side/2,3)
+            coord = (x_coord,0.0)
+            root_coord[mote_id] = coord
+            mote_is_deployed = True
+            print('DODAG{} ROOT coord:{}'.format(mote_id, coord))
+            return coord,mote_is_deployed
 
         #integer related to collumns
 
-        col_aux = (aux_counter%(fits+1))
+        col_aux = (aux_counter%(mote_fit+1))
 
         # integer related to the amount of motes in a single square side.
         # if rows = 1 there will be a second row only if the amount of motes do not fit
         # if rows > 1 the motes are divided in this quanity of rows while behaving the step.
-        row_aux = float(math.floor(aux_counter/(fits+1)))
+        row_aux = float(math.floor(aux_counter/(mote_fit+1)))
 
         # coordinates
-        x_coord = round(col_aux*step,2)
+        x_coord = round(col_aux*x_step,3)
 
-        y_coord = round((row_aux+1)*y_offset,2)
+        if row_aux == 0:
+            y_coord = round(row_aux*y_step,3)
+        else:
+            # here the motes are split to create rows poping from negative to positive values around 0 axis.
+
+            # division forces a "pair" related to the even row
+            # i.e: ceil(3/2) = 2, when ROW = 3 we want the motes in the second level of negative rows
+            # fisrt row, row_aux = 0 -> motes at ycoord=0;
+            # second row, row_aux = 1 -> motes at ycoord = -step;
+            # third row, row_aux = 2 -> motes at ycoord = step;
+            # fourth row, row_aux = 2 -> motes at ycoord = -(2*step), not (-3*step);
+            div_aux = float(math.ceil(row_aux/2))
+
+
+            if not row_aux % 2:# EVEN numbers positive
+
+                # -1 is for correcting the values as the counter only increases.
+                y_coord = round((div_aux)*y_step,3)
+
+            else : # odd numbers ( negative )
+                y_coord = round(-(div_aux*y_step),3)
+
+        
 
         coord  =  (x_coord,y_coord)
+
+        for root_c in self.settings.roots:
+            if coord == root_coord[root_c]:
+            # this is the root coord, try a new one.
+                aux_counter += 1
+                return self._calculate_linear_matrix_coordinates(square_side,mote_id,x_step,y_step,mote_qty,mote_fit)
+
+
+        aux_counter += 1
+
+        return coord,mote_is_deployed
+
+    def _calculate_linear_coordinates(self,square_side,mote_id,x_step,y_step,mote_qty):
+        # Single root in the left side (0,0)
+        # r x x x x x x x 
+
+        global aux_counter
+
+        mote_is_deployed = False
+       
+        # ammount of motes in a single row.
+        # there is a new variable for this. Use that. settings.motes_by_line
+        mote_fit = float(math.floor(square_side/x_step))
+
+        if mote_qty > mote_fit:
+            return self._calculate_linear_matrix_coordinates(square_side,mote_id,x_step,y_step,mote_qty,mote_fit)
+
+
+        #integer related to collumns
+
+        col_aux = (aux_counter%(mote_fit+1))
+
+        # integer related to the amount of motes in a single square side.
+        # if rows = 1 there will be a second row only if the amount of motes do not fit
+        # if rows > 1 the motes are divided in this quanity of rows while behaving the step.
+        row_aux = float(math.floor(aux_counter/(mote_fit+1)))
+
+        # coordinates
+        x_coord = round(col_aux*x_step,3)
+
+        coord  =  (x_coord,y_step)
 
         if mote_id in self.settings.roots:
             # coord = (mote_id*square_side, (aux_counter%roots_per_row)+y_offset)
@@ -1080,8 +1197,8 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
         # print('\n mote_id', mote_id , coord)
         return coord,mote_is_deployed
 
-    def _calculate_even_odd_split_coordinates(self,square_side,mote_id,step,y_offset,rows=1):
-         # must be linear with multiple rows, for now row = 1
+    def _calculate_split_coordinates(self,square_side,mote_id,x_step,y_step,rows=1):
+        # must be linear with multiple rows, for now row = 1
         # This one is just on first
         # roots in the both extremes of the square
         global aux_counter
@@ -1089,28 +1206,17 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
 
 
         if not(mote_id % 2): # even
-            x_coord =  round(aux_counter*step,2)
-            coord  =  (x_coord,y_offset);
+            x_coord =  round(aux_counter*step,3)
+            coord  =  (x_coord,step);
         else: #odd
-            x_coord = round((square_side - aux_counter*step),2)
-            coord = (x_coord,y_offset)
+            x_coord = round((square_side - aux_counter*step),3)
+            coord = (x_coord,step)
             aux_counter += 1
         return coord
 
-    def _calculate_circular_coordinates(self,square_side,mote_id,step,y_offset):
+    def _calculate_circular_coordinates(self,square_side,mote_id,x_step,y_step):
         #roots in the middle of the circle
-        x_coord = 0;
-        global aux_counter
-        if not(mote_id % 2): # even
-            x_coord =  round(aux_counter*step,2)
-            coord  =  (x_coord,y_offset);
-        else: #odd
-            x_coord = round((square_side - aux_counter*step),2)
-            coord = (x_coord,y_offset)
-            aux_counter += 1
-
-        print('\n mote_id', mote_id , coord)
-        return coord,mode_t
+        return None 
 
         
 

@@ -53,6 +53,16 @@ def openfile(func):
 
 # =========================== helpers =========================================
 
+def plot_avg_hops(data,file_settings):
+    print(data)
+    global subfolder
+    plt.bar(data.keys(),data.values())
+    plt.ylabel('Average Hops')
+    plt.xlabel('mote ID')
+    plt.title('Average Hops by mote - {} '.format(file_settings['band']))
+    plt.savefig(os.path.join(subfolder, 'avg_hops.png'),dpi=300)
+
+
 
 def plot_deploy(allstatsData,file_settings):
     # moteData = {k: v for k, v in allstatsData.items() }
@@ -87,14 +97,27 @@ def plot_deploy(allstatsData,file_settings):
 
     groups = df.groupby('DODAG')
 
+
+    plt.axis('equal')
+    # plt.axis([0,100,-20,10])
     for name, group in groups:
         plt.plot(group["x"], group["y"], marker="o", linestyle="", label=name)
 
-    txt_x_offset = 2.3;
-    txt_y_offset = 0.4;
+    # if file_settings['exec_numMotes'] > 20:
+        # txt_x_offset = 2.0
+        # txt_y_offset = 2.0
+        # fontsize = 4
+
+    # else:
+        txt_x_offset = 0.15
+        txt_y_offset = 0.4
+        fontsize = 4
+
     for key in coordinates.keys():
         txt = 'id:{}'.format(key)
-        plt.annotate(txt, xy=(x[key],y[key]), xytext=(x[key]-txt_x_offset,y[key]-txt_y_offset))
+        # plt.annotate(txt, xy=(x[key],y[key]), xytext=(x[key]-txt_x_offset,y[key]-txt_y_offset))
+        plt.text(x[key]-txt_x_offset, y[key]-txt_y_offset, 'id:{}'.format(key), fontsize=fontsize)
+
 
     plt.xlabel('x (m)')
     plt.ylabel('y (m)')
@@ -160,6 +183,11 @@ def createSingleStats(stats,mote_id,motestats):
         value for value in stats['current_consumed'] if value is not None
     ]
 
+    #hops
+    if 'avg_hops' in motestats.keys():
+        # print('yo')
+        stats['avg_hops'][mote_id] = motestats['avg_hops']
+
     # }
 def createAllStats(stats):
     return {
@@ -171,7 +199,11 @@ def createAllStats(stats):
         {
             'name': 'Network Size',
             'value': stats['network_size']
-        }
+        },
+        {
+            'name': 'Average Hops By mote',
+            'value': stats['avg_hops']
+        },
         ],
         'e2e-upstream-delivery': [
                 {
@@ -523,6 +555,7 @@ def kpis_all(inputfile):
         stats['global'] =  {
             'network':[],
             'network_size': 0,
+            'avg_hops':{},
             'app_packets_sent': 0,
             'app_packets_received': 0,
             'app_packets_lost': 0,
@@ -539,6 +572,7 @@ def kpis_all(inputfile):
                 stats['DODAG_{}'.format(root)] = {
                     'network':[],
                     'network_size': 0,
+                    'avg_hops': {},
                     'app_packets_sent': 0,
                     'app_packets_received': 0,
                     'app_packets_lost': 0,
@@ -563,6 +597,9 @@ def kpis_all(inputfile):
                     stats['DODAG_{}'.format(DAGROOT_IPs.index(motestats['dodagRoot']))],
                     mote_id,
                     motestats)
+
+        #plot avg hops
+        plot_avg_hops(stats['global']['avg_hops'],file_settings)
 
         #-- save stats
         allstats[run_id]['global-stats'] = createAllStats(stats['global'])
@@ -589,7 +626,6 @@ def kpis_all(inputfile):
 
     # plot deploy of first run
     plot_deploy(allstats[0],file_settings)
-
     return allstats
 
 # =========================== main ============================================
@@ -599,24 +635,32 @@ def main():
     # FIXME: This logic could be a helper method for other scripts
     # Identify simData having the latest results. That directory should have
     # the latest "mtime".
-    subfolders = list(
-        [os.path.join('simData', x) for x in os.listdir('simData')]
-    )
-    subfolder = max(subfolders, key=os.path.getmtime)
-    for infile in glob.glob(os.path.join(subfolder, '*.dat')):
-        print('generating KPIs for {0}'.format(infile))
+    if len(sys.argv) == 1 :
+        subfolders = list(
+            [os.path.join('simData', x) for x in os.listdir('simData')]
+        )
+        subfolder = max(subfolders, key=os.path.getmtime)
+    else:
+        subfolder = os.path.join('simData', str(sys.argv[1]))
+        
+    if len(glob.glob(os.path.join(subfolder, '*.dat'))):
+        for infile in glob.glob(os.path.join(subfolder, '*.dat')):
+            print('generating KPIs for {0}'.format(infile))
 
-        # gather the kpis
-        kpis = kpis_all(infile)
+            # gather the kpis
+            kpis = kpis_all(infile)
 
-        # print on the terminal
-        # print(json.dumps(kpis, indent=4))
+            # print on the terminal
+            # print(json.dumps(kpis, indent=4))
 
-        # add to the data folder
-        outfile = '{0}.kpi'.format(infile)
-        with open(outfile, 'w') as f:
-            f.write(json.dumps(kpis, indent=4))
-        print('KPIs saved in {0}'.format(outfile))
+            # add to the data folder
+            outfile = '{0}.kpi'.format(infile)
+            with open(outfile, 'w') as f:
+                f.write(json.dumps(kpis, indent=4))
+            print('KPIs saved in {0}'.format(outfile))
+    else:
+
+        print('Path does not contain ".dat" file')
 
 if __name__ == '__main__':
     main()

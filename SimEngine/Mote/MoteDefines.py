@@ -143,8 +143,7 @@ RADIO_STATE_OFF                             = u'off'
 
 # EIGHT_SIX_EIGHT_MHZ = 1
 
-BAND = 1
-
+BAND = 0
 if not BAND:
 
 	TSCH_HOPPING_SEQUENCE = TSCH_HOPPING_SEQUENCE_TWO_DOT_FOUR
@@ -158,7 +157,7 @@ else:
 
 # todo
 
-#consumption for the WHOLE slot
+# consumption for the WHOLE slot
 # OpenMote - CC2538
 # tx_data = 4ms ( 127 * 8 / 250k)
 # tx_ack = 1ms (32 * 8 / 250k)

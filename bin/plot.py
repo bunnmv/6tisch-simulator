@@ -31,7 +31,7 @@ KPIS = [
     'lifetime_AA_years',
     'sync_time_s',
     'join_time_s',
-    'upstream_num_lost'
+    'upstream_num_lost',
 ]
 
 # ============================ main ===========================================
@@ -67,8 +67,6 @@ def main(options):
                 data[curr_combination] = [0 if v is None else v for v in data[curr_combination]]                           
         # plot
         try:
-            # data_list = list(data.values())
-            # [0 if v is None else v for v in data_list[0]]
             if key in ['lifetime_AA_years', 'latencies']:
                 plot_cdf(data, key, subfolder)
             else:            
