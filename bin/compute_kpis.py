@@ -53,14 +53,35 @@ def openfile(func):
 
 # =========================== helpers =========================================
 
+
+def plot_motes_app_tx_seconds(data,file_settings):
+    global subfolder
+    # print(data)
+    for mote_id, times in list(data.items()):
+        y=np.empty(len(times)); 
+        y.fill(mote_id);
+        s = np.empty(len(times))
+        s.fill(10)
+        # n_times = [i /60/60 for i in times]
+        plt.scatter(times,y,s = s)
+        # plt.plot(times,np.arange(0,len(times)))
+    plt.axis([1500,2600,0,10])
+    plt.xlabel('time(s)')
+    plt.ylabel('mote ID')
+    plt.title('Time of packet TX event by mote - {} '.format(file_settings['band']))
+    # plt.show()
+    plt.savefig(os.path.join(subfolder, 'tx_times.png'),dpi=300)
+    plt.close()
+
+
 def plot_avg_hops(data,file_settings):
-    print(data)
     global subfolder
     plt.bar(data.keys(),data.values())
     plt.ylabel('Average Hops')
     plt.xlabel('mote ID')
     plt.title('Average Hops by mote - {} '.format(file_settings['band']))
     plt.savefig(os.path.join(subfolder, 'avg_hops.png'),dpi=300)
+    plt.close()
 
 
 
@@ -132,6 +153,7 @@ def plot_deploy(allstatsData,file_settings):
     plt.legend(handles, labels)
 
     plt.savefig(os.path.join(subfolder, 'deploy.png'),dpi=300)
+    plt.close()
 
 def mean(numbers):
     return float(sum(numbers)) / max(len(numbers), 1)
@@ -152,6 +174,8 @@ def init_mote():
         'charge': None,
         'lifetime_AA_years': None,
         'avg_current_uA': None,
+        'tx_seconds': [],
+
     }
 
 def createSingleStats(stats,mote_id,motestats):
@@ -185,8 +209,11 @@ def createSingleStats(stats,mote_id,motestats):
 
     #hops
     if 'avg_hops' in motestats.keys():
-        # print('yo')
         stats['avg_hops'][mote_id] = motestats['avg_hops']
+
+    #tx packets
+    if 'tx_seconds' in motestats.keys():
+        stats['tx_seconds'][mote_id] = motestats['tx_seconds']
 
     # }
 def createAllStats(stats):
@@ -361,9 +388,11 @@ def kpis_all(inputfile):
 
     file_settings = json.loads(inputfile.readline())  # first line contains settings
 
-    assert len(DAGROOT_IPs) >= len(file_settings['roots'])
+    if 'roots' in file_settings.keys(): 
+        assert len(DAGROOT_IPs) >= len(file_settings['roots'])
 
     # === gather raw stats
+    
 
     for line in inputfile:
         logline = json.loads(line)
@@ -424,7 +453,7 @@ def kpis_all(inputfile):
             mote_id    = logline['_mote_id']
             dstIp      = logline['packet']['net']['dstIp']
             appcounter = logline['packet']['app']['appcounter']
-
+            seconds = logline['packet']['app']['seconds']
             # print(mote_id, dstIp)
 
             # only log upstream packets 
@@ -442,6 +471,7 @@ def kpis_all(inputfile):
                 }
 
             allstats[run_id][mote_id]['upstream_pkts'][appcounter]['tx_asn'] = asn
+            allstats[run_id][mote_id]['upstream_pkts'][appcounter]['tx_seconds'] = seconds
 
         elif logline['_type'] == SimLog.LOG_APP_RX['type']:
             # packet reception
@@ -451,11 +481,8 @@ def kpis_all(inputfile):
             dstIp      = logline['packet']['net']['dstIp']
             hop_limit  = logline['packet']['net']['hop_limit']
             appcounter = logline['packet']['app']['appcounter']
+
             # only log upstream packets 
-            # Continue gets of the if
-
-            # if (dstIp != DAGROOT_IP_0 and dstIp != DAGROOT_IP_1):
-
             if dstIp not in DAGROOT_IPs:
                 continue
             
@@ -522,6 +549,7 @@ def kpis_all(inputfile):
                     # latencies, upstream_num_tx, upstream_num_rx, upstream_num_lost
                     for (appcounter, pktstats) in list(allstats[run_id][mote_id]['upstream_pkts'].items()):
                         # print(appcounter,'\n', pktstats,'\n')
+                        motestats['tx_seconds']+=[pktstats['tx_seconds']]
                         motestats['upstream_num_tx']      += 1
                         if 'rx_asn' in pktstats:
                             motestats['upstream_num_rx']  += 1
@@ -546,6 +574,9 @@ def kpis_all(inputfile):
         for root in file_settings['roots']:
             stats['DODAG_{}'.format(root)] = {}
 
+
+
+
     for (run_id, per_mote_stats) in list(allstats.items()):
 
         #-- define stats
@@ -563,7 +594,9 @@ def kpis_all(inputfile):
             'us_latencies':[],
             'current_consumed':[],
             'lifetimes':[],
-            'slot_duration':file_settings['tsch_slotDuration']
+            'slot_duration':file_settings['tsch_slotDuration'],
+            'tx_seconds':{}
+
         }
 
         # if there is only one root we do not need separeted statistics
@@ -580,7 +613,8 @@ def kpis_all(inputfile):
                     'us_latencies':[],
                     'current_consumed':[],
                     'lifetimes':[],
-                    'slot_duration':file_settings['tsch_slotDuration']
+                    'slot_duration':file_settings['tsch_slotDuration'],
+                    'tx_seconds':{}
                 }
 
         #-- compute stats
@@ -600,6 +634,11 @@ def kpis_all(inputfile):
 
         #plot avg hops
         plot_avg_hops(stats['global']['avg_hops'],file_settings)
+
+         #plot tx packs seconds
+    
+        plot_motes_app_tx_seconds(stats['global']['tx_seconds'],file_settings)
+
 
         #-- save stats
         allstats[run_id]['global-stats'] = createAllStats(stats['global'])

@@ -32,7 +32,7 @@ def App(mote):
     # mote.dagRoot because mote.dagRoot is not initialized when application is
     # instantiated
     # or mote.id == 1
-    if mote.id == 0 or mote.id == 1:
+    if mote.id in settings.roots:
         return AppRoot(mote)
     else:
         return globals()[settings.app](mote)
@@ -97,7 +97,8 @@ class AppBase(object):
             },
             u'app': {
                 u'appcounter':    self.appcounter,
-                u'timestamp':     self.engine.getAsn()
+                u'timestamp':     self.engine.getAsn(),
+                u'seconds':       self.engine.getAsn()*self.settings.tsch_slotDuration
             }
 
         }
@@ -130,7 +131,7 @@ class AppBase(object):
         )
 
         # send
-        # print('mote:', self.mote.id,'sending packet',  packet['app'], 'dstIP', dstIp)
+        # print('APP > TX > mote:', self.mote.id,self.engine.getAsn())
         self.mote.sixlowpan.sendPacket(packet)
 
 class AppRoot(AppBase):
@@ -148,6 +149,7 @@ class AppRoot(AppBase):
 
     def startSendingData(self):
         # nothing to schedule
+        # ROOT does not send data
         pass
 
     def recvPacket(self, packet):
@@ -204,12 +206,44 @@ class AppPeriodic(AppBase):
 
         if self.sending_first_packet:
             # compute initial time within the range of [next asn, next asn+pkPeriod]
-            delay = self.settings.tsch_slotDuration + (self.settings.app_pkPeriod * random.random())
+            # delay = self.settings.tsch_slotDuration + (self.settings.app_pkPeriod * random.random())
+            # delay = self.settings.app_backoffWindow
+
+            #if first scheduling is set it means mote is ready to transmit. We can create a window based on its ID so motes start transmitting at the same time.
+            window  = self.settings.app_backoffWindow + self.mote.id*100
+
+            current_time = self.settings.tsch_slotDuration*self.engine.getAsn()
+            delay = window - current_time
+            if delay < 0:
+                # here it can no be guaranted the application will provide
+                # the packet at the same time as both interfaces will have different disconection periods
+                    delay = self.settings.app_pkPeriod
+                    
+            print('\nasn: ',self.engine.getAsn(), 'mote: ', self.mote.id, '\nschedule TX: ', window,'\ncurrent time:', current_time, '\ndelay', delay)
+
+            self.log(
+                SimEngine.SimLog.LOG_APP_SCH_FIRST,
+                {
+                    u'_mote_id': self.mote.id,
+                    u'appcounter':self.appcounter,
+                    u'timestamp': self.engine.getAsn(),
+                    u'delay':delay,
+
+                }
+            )
             self.sending_first_packet = False
         else:
             # compute random delay
             assert self.settings.app_pkPeriodVar < 1
             delay = self.settings.app_pkPeriod * (1 + random.uniform(-self.settings.app_pkPeriodVar, self.settings.app_pkPeriodVar))
+            self.log(
+            SimEngine.SimLog.LOG_APP_SCH_SINGLE,
+                {
+                    u'_mote_id': self.mote.id,
+                    u'appcounter': self.appcounter,
+                    u'timestamp': self.engine.getAsn(),
+                }
+            )
 
         # schedule
         self.engine.scheduleIn(
@@ -234,6 +268,9 @@ class AppPeriodic(AppBase):
         )
         # schedule the next transmission
         self._schedule_transmission()
+
+
+        
 
 class AppBurst(AppBase):
     """Generate burst traffic to the root at the specified time (only once)

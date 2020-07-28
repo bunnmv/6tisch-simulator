@@ -17,10 +17,11 @@
 
             "app":                                         "AppPeriodic",
             "app_pkPeriod":                                60,
-            "app_pkPeriodVar":                             0.05,
+            "app_pkPeriodVar":                             0.0,
             "app_pkLength":                                90,
             "app_burstTimestamp":                          null,
             "app_burstNumPackets":                         0,
+            "app_backoffWindow":                           1600, 
 
             "rpl_of":                                      "OF0",
             "rpl_daoPeriod":                               60,
@@ -50,7 +51,7 @@
             "conn_simulate_ack_drop":                      false,
 
             "conn_trace":                                  null,
-            "conn_random_square_side":                     1.0,
+            "conn_random_square_side":                     0.1,
             "conn_random_init_min_pdr":                    0,
             "conn_random_init_min_neighbors":              0,
 
@@ -58,9 +59,9 @@
 
             "motes_eui64":                                 [],
 
-            "deploy":                                      "linear",
+            "deploy":                                      "random",
             "motes_by_line":                               10, 
-            "mote_distance":                               0.0,
+            "mote_distance":                               null,
             "roots":                                       [0],
             "band":                                        "868Mhz"
         }   

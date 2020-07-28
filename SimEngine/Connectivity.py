@@ -916,14 +916,18 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
         init_min_pdr       = self.settings.conn_random_init_min_pdr
         init_min_neighbors = self.settings.conn_random_init_min_neighbors
         # step = round(square_side/self.settings.exec_numMotes,4)
-        y_step = self.settings.mote_distance
+        
 
         if self.settings.motes_by_line:
+            assert self.settings.motes_by_line > 1
             #should be either null or a value that represents the amount of lines used
-            x_step = round(square_side/self.settings.motes_by_line,4)
+            x_step = round(square_side/(self.settings.motes_by_line-1),4)
             # TODO: allow a square method that enforces ystep to be equal to x_step enforced by the self.settings.motes_by_line
+            y_step = x_step
         else:
-            # if null, they will create a square.
+            # use mote distance.
+            assert self.settings.mote_distance
+            y_step = self.settings.mote_distance
             x_step = y_step
 
         assert init_min_neighbors <= self.settings.exec_numMotes
@@ -1080,13 +1084,24 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
             # User split if more than one root.
             assert len(self.settings.roots) == 1
             return self._calculate_linear_coordinates(square_side,mote_id,x_step,y_step,mote_qty)
+
+        elif deploy == 'random':
+            assert len(self.settings.roots) == 1
+            return self._calculate_random_coordinates(square_side,mote_id)
+
         elif deploy == 'split':
             assert len(self.settings.roots) == 1
             return self._calculate_split_coordinates(square_side,mote_id,x_step,y_step,mote_qty)
 
     def _calculate_random_coordinates(self,square_side,mote_id):
+        mote_is_deployed = False
 
-        return (square_side * random.random(),square_side * random.random())
+        if mote_id in self.settings.roots:
+             coord = (round(square_side/2,3),round(square_side/2,3))
+             mote_is_deployed = True
+             return coord,mote_is_deployed 
+
+        return (square_side * random.random(),square_side * random.random()), mote_is_deployed
 
 
     def _calculate_linear_matrix_coordinates(self,square_side,mote_id,x_step,y_step,mote_qty,mote_fit):
@@ -1101,9 +1116,11 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
 
         mote_is_deployed = False
 
+        middle = round(square_side/2,3)
+        offset = middle + y_step/2
+
         if mote_id in self.settings.roots:
-            x_coord = round(square_side/2,3)
-            coord = (x_coord,0.0)
+            coord = (middle,middle)
             root_coord[mote_id] = coord
             mote_is_deployed = True
             print('DODAG{} ROOT coord:{}'.format(mote_id, coord))
@@ -1122,7 +1139,7 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
         x_coord = round(col_aux*x_step,3)
 
         if row_aux == 0:
-            y_coord = round(row_aux*y_step,3)
+            y_coord = round(row_aux*y_step + offset,3)
         else:
             # here the motes are split to create rows poping from negative to positive values around 0 axis.
 
@@ -1134,14 +1151,16 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
             # fourth row, row_aux = 2 -> motes at ycoord = -(2*step), not (-3*step);
             div_aux = float(math.ceil(row_aux/2))
 
-
+            print('\n',row_aux,row_aux*y_step)
             if not row_aux % 2:# EVEN numbers positive
 
                 # -1 is for correcting the values as the counter only increases.
-                y_coord = round((div_aux)*y_step,3)
+                y_coord = round((div_aux)*y_step + offset,3)
+                                # y_coord = round((div_aux)*y_step + offset,3)+(row_aux*y_step)
+
 
             else : # odd numbers ( negative )
-                y_coord = round(-(div_aux*y_step),3)
+                y_coord = round(-(div_aux*y_step) + offset,3)
 
         
 
