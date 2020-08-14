@@ -24,6 +24,7 @@ import SimEngine.Mote.MoteDefines as d
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import copy
 
 # =========================== defines =========================================
 
@@ -54,7 +55,7 @@ def openfile(func):
 # =========================== helpers =========================================
 
 
-def plot_motes_app_tx_seconds(data,file_settings):
+def plot_motes_app_tx_seconds(data,file_settings,window='regular'):
     global subfolder
     # print(data)
     for mote_id, times in list(data.items()):
@@ -65,10 +66,12 @@ def plot_motes_app_tx_seconds(data,file_settings):
         # n_times = [i /60/60 for i in times]
         plt.scatter(times,y,s = s)
         # plt.plot(times,np.arange(0,len(times)))
-    plt.axis([1500,2600,0,10])
+    if window != 'regular': 
+        # window = 'backoff'
+        plt.axis([1500,2600,0,10])
     plt.xlabel('time(s)')
     plt.ylabel('mote ID')
-    plt.title('Time of packet TX event by mote - {} '.format(file_settings['band']))
+    plt.title('Packet creation time - {} '.format(file_settings['band']))
     # plt.show()
     plt.savefig(os.path.join(subfolder, 'tx_times.png'),dpi=300)
     plt.close()
@@ -218,21 +221,21 @@ def createSingleStats(stats,mote_id,motestats):
     # }
 def createAllStats(stats):
     return {
-        'network-connectivity-data':[
-        {
-            'name': 'List of connected mote IDs',
-            'value': stats['network']
-        },
-        {
-            'name': 'Network Size',
-            'value': stats['network_size']
-        },
-        {
-            'name': 'Average Hops By mote',
-            'value': stats['avg_hops']
-        },
-        ],
-        'e2e-upstream-delivery': [
+            'network-connectivity-data':[
+                    {
+                        'name': 'List of connected mote IDs',
+                        'value': stats['network']
+                    },
+                    {
+                        'name': 'Network Size',
+                        'value': stats['network_size']
+                    },
+                    {
+                        'name': 'Average Hops By mote',
+                        'value': stats['avg_hops']
+                    },
+                ],
+            'e2e-upstream-delivery': [
                 {
                     'name': 'E2E Upstream Delivery Ratio',
                     'unit': '%',
@@ -379,6 +382,57 @@ def createAllStats(stats):
             ]
     }  
 
+def is_number(s):
+    try:
+        float(s)  
+    except ValueError:
+        return False
+    return True
+
+def createJoinStatsRuns(stats):
+    #Initialize with first
+    join_stats = {}
+    join_stats = copy.deepcopy(stats[0]['global-stats'])
+
+    totalRuns = len(list(stats.items()))
+    for (run_id, per_mote_stats) in stats.items():
+        #read global from each
+        if run_id == 0:
+            #skips first
+            continue
+        # print(list(per_mote_stats['global-stats'].items()))
+
+        for (key, value) in per_mote_stats['global-stats'].items():
+                for index in range(len(value)): 
+                    for (inner_key,inner_value) in list(value[index].items()):
+                        if not hasattr(inner_value, "__len__"):
+                            #if is a number it will be added for later computation
+                            join_stats[key][index][inner_key] = [join_stats[key][index][inner_key]]+[inner_value]
+                            # else there is no need to do anything
+                            if run_id == totalRuns - 1:
+                                #calculate the average from both stats
+                                # print('COMPUTE MEAN', key, index, inner_key,join_stats[key][index][inner_key])
+                                join_stats[key][index][inner_key] = mean(join_stats[key][index][inner_key])
+
+                        
+                        else:
+                            # if not string
+                            if not isinstance(inner_value, str) and type(inner_value) is not list:
+                            #iterate over the array   
+                                for (obj_key,obj_value) in list(inner_value.items()): 
+                                    # if not present, that mote did not connect    
+                                    if obj_key in join_stats[key][index][inner_key]:
+                                        join_stats[key][index][inner_key][obj_key] = [join_stats[key][index][inner_key][obj_key]]+[obj_value]
+                                        if run_id == totalRuns - 1:
+                                            #calculate the average from both stats
+                                            # print('COMPUTE MEAN', key, index, inner_key,join_stats[key][index][inner_key])
+                                            join_stats[key][index][inner_key][obj_key] = mean(join_stats[key][index][inner_key][obj_key])
+
+
+
+
+    return join_stats
+
 # =========================== KPIs ============================================
 
 @openfile
@@ -440,11 +494,16 @@ def kpis_all(inputfile):
             # only log non-dagRoot join times
             if mote_id in file_settings['roots']:
                 continue
+            if not allstats[run_id][mote_id]['join_asn']:
+                print('first joined', mote_id, 'at ', asn)
+            else:
+                print('this mote was joined previously ->', mote_id, 'at ', allstats[run_id][mote_id]['join_asn'], 'now at ', asn)
 
             # populate
             assert allstats[run_id][mote_id]['sync_asn'] is not None
             allstats[run_id][mote_id]['join_asn']  = asn
             allstats[run_id][mote_id]['join_time_s'] = asn*file_settings['tsch_slotDuration']
+
 
         elif logline['_type'] == SimLog.LOG_APP_TX['type']:
             # packet transmission
@@ -454,6 +513,7 @@ def kpis_all(inputfile):
             dstIp      = logline['packet']['net']['dstIp']
             appcounter = logline['packet']['app']['appcounter']
             seconds = logline['packet']['app']['seconds']
+            
             # print(mote_id, dstIp)
 
             # only log upstream packets 
@@ -466,10 +526,23 @@ def kpis_all(inputfile):
             # populate
             assert allstats[run_id][mote_id]['join_asn'] is not None
             if appcounter not in allstats[run_id][mote_id]['upstream_pkts']:
+                # initiallize the first hop, the final hop count is stored in the received packet
+                # hops are decremented on 6LowPAN and updated in the packet content
                 allstats[run_id][mote_id]['upstream_pkts'][appcounter] = {
                     'hops': 0,
                 }
+           
+            # check if the packet was already transmited previously to override it
+            # if the package was sent o a different asn by another interface it means that the applications are not sync
+            # or that the mote unjoined the DODAG. IN order to this, a margin is considered, and the Lowest ASN is considered.
 
+            if 'tx_seconds' in allstats[run_id][mote_id]['upstream_pkts'][appcounter]:
+                #consider a one period window max
+                previous_tx_sec = allstats[run_id][mote_id]['upstream_pkts'][appcounter]['tx_seconds']
+                if previous_tx_sec > seconds+file_settings["app_pkPeriod"]:
+                    allstats[run_id][mote_id]['upstream_pkts'][appcounter]['online'] = True;
+
+            #override data for the new interace ( on RX latency will be computed)
             allstats[run_id][mote_id]['upstream_pkts'][appcounter]['tx_asn'] = asn
             allstats[run_id][mote_id]['upstream_pkts'][appcounter]['tx_seconds'] = seconds
 
@@ -482,14 +555,36 @@ def kpis_all(inputfile):
             hop_limit  = logline['packet']['net']['hop_limit']
             appcounter = logline['packet']['app']['appcounter']
 
+            #slot duration was added to packet to acctount for multiple slot durarions
+            slot_duration = logline['config']['slot_duration']
+
+            tx_asn = allstats[run_id][mote_id]['upstream_pkts'][appcounter]['tx_asn']
+
+
             # only log upstream packets 
             if dstIp not in DAGROOT_IPs:
                 continue
             
+            if 'latency' in allstats[run_id][mote_id]['upstream_pkts'][appcounter] and 'online' not in allstats[run_id][mote_id]['upstream_pkts'][appcounter]:
+            # packet was already received by other radio interface 
+            # online - represents the correct packet, as the other interface was offline (there is only this one to account for)
+                # older packet tx_asn is replaced on the packet TX compute, hence tx_asn is related to the new packet.
+                if allstats[run_id][mote_id]['upstream_pkts'][appcounter]['latency'] > (asn-tx_asn)*slot_duration:
+                    # Substitute older latency if longer than the second one
+                    allstats[run_id][mote_id]['upstream_pkts'][appcounter]['latency'] = (asn-tx_asn)*slot_duration
+
+            else :
+                #this packet was not received by the first interface, hence this is the correct latency to use
+                allstats[run_id][mote_id]['upstream_pkts'][appcounter]['latency'] = (asn-tx_asn)*slot_duration
+
+
             allstats[run_id][mote_id]['upstream_pkts'][appcounter]['hops']   = (
                 d.IPV6_DEFAULT_HOP_LIMIT - hop_limit + 1
             )
             allstats[run_id][mote_id]['upstream_pkts'][appcounter]['rx_asn'] = asn
+
+            #add slot duration foir join compute ( two radio interface )
+            allstats[run_id][mote_id]['upstream_pkts'][appcounter]['slot_duration'] = slot_duration
 
         elif logline['_type'] == SimLog.LOG_RADIO_STATS['type']:
             # shorthands
@@ -553,7 +648,9 @@ def kpis_all(inputfile):
                         motestats['upstream_num_tx']      += 1
                         if 'rx_asn' in pktstats:
                             motestats['upstream_num_rx']  += 1
-                            thislatency = (pktstats['rx_asn']-pktstats['tx_asn'])*file_settings['tsch_slotDuration']
+                            # thislatency = (pktstats['rx_asn']-pktstats['tx_asn'])*file_settings['tsch_slotDuration']
+                            # thislatency = (pktstats['rx_asn']-pktstats['tx_asn'])*pktstats['slot_duration']
+                            thislatency = pktstats['latency']
                             motestats['latencies']  += [thislatency]
                             motestats['hops']       += [pktstats['hops']]
                         else:
@@ -661,7 +758,18 @@ def kpis_all(inputfile):
                 del motestats['upstream_pkts']
                 del motestats['hops']
                 del motestats['join_asn']
+                # del motestats['tx_seconds']
+                # del motestats['latencies']
 
+
+
+
+    # Join KPIs from all runs
+
+    # starting wiht simple average from global KPI s
+    # numRuns are not sved in .data file, must check run ids in all stats
+    if len(list(allstats.keys())) > 1:
+        allstats['join-metrics'] = createJoinStatsRuns(allstats)
 
     # plot deploy of first run
     plot_deploy(allstats[0],file_settings)

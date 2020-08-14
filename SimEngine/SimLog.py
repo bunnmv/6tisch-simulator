@@ -42,9 +42,9 @@ DROPREASON_RANK_ERROR             = u'rank_error'
 
 # === app
 LOG_APP_TX                        = {u'type': u'app.tx',                    u'keys': [u'_mote_id',u'packet']}
-LOG_APP_RX                        = {u'type': u'app.rx',                    u'keys': [u'_mote_id',u'packet']}
+LOG_APP_RX                        = {u'type': u'app.rx',                    u'keys': [u'_mote_id',u'packet', u'config']}
 LOG_APP_SCH_FIRST                 = {u'type': u'app.sch.first',             u'keys': [u'_mote_id', u'appcounter', u'timestamp', u'delay']}
-LOG_APP_SCH_SINGLE                = {u'type': u'app.sch.single',            u'keys': [u'_mote_id', u'appcounter', u'timestamp']}
+LOG_APP_SCH_SINGLE                = {u'type': u'app.sch.single',            u'keys': [u'_mote_id', u'appcounter', u'timestamp', u'delay']}
 
 # === secjoin
 LOG_SECJOIN_TX                    = {u'type': u'secjoin.tx',                u'keys': [u'_mote_id']}

@@ -41,12 +41,15 @@ def main(options):
     # init
     data = OrderedDict()
 
-    # chose lastest results
-    subfolders = list(
-        [os.path.join(options.inputfolder, x) for x in os.listdir(options.inputfolder)]
-    )
-    subfolder = max(subfolders, key=os.path.getmtime)
-
+    if(options.inputfolder):
+        subfolder = options.inputfolder
+    else:
+        # chose lastest results
+        subfolders = list(
+            [os.path.join(options.inputfolder, x) for x in os.listdir(options.inputfolder)]
+        )
+        subfolder = max(subfolders, key=os.path.getmtime)
+    print(subfolder)
     for key in options.kpis:
         # load data
         for file_path in sorted(glob.glob(os.path.join(subfolder, '*.kpi'))):
@@ -79,6 +82,7 @@ def main(options):
 # =========================== helpers =========================================
 
 def plot_cdf(data, key, subfolder):
+    print('\nAAAAAAA\n', key,'\n')
     for k, values in data.items():
         # convert list of list to list
         if type(values[0]) == list:
@@ -114,6 +118,7 @@ def savefig(output_folder, output_name, output_format="png"):
         bbox_inches     = 'tight',
         pad_inches      = 0,
         format          = output_format,
+        dpi             =300
     )
 
 def parse_args():

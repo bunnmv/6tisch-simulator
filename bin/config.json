@@ -2,7 +2,7 @@
     "version":                                             0,
     "execution": {
         "numCPUs":                                         1,
-        "numRuns":                                         1
+        "numRuns":                                         2
     },
     "settings": {
         "combination": {
@@ -10,14 +10,14 @@
         },
         "regular": {
             "exec_numSlotframesPerRun":                    null,
-            "exec_minutesPerRun":                          240,
-            "exec_randomSeed":                             2074270055270395,
+            "exec_minutesPerRun":                          90,
+            "exec_randomSeed":                             "random",
 
             "secjoin_enabled":                             true,
 
             "app":                                         "AppPeriodic",
             "app_pkPeriod":                                60,
-            "app_pkPeriodVar":                             0.0,
+            "app_pkPeriodVar":                             0.00,
             "app_pkLength":                                90,
             "app_burstTimestamp":                          null,
             "app_burstNumPackets":                         0,
@@ -59,7 +59,7 @@
 
             "motes_eui64":                                 [],
 
-            "deploy":                                      "random",
+            "deploy":                                      "linear",
             "motes_by_line":                               10,   
             "mote_distance":                               null,
             "roots":                                       [0],
@@ -69,7 +69,6 @@
     "logging":                                             "all",
     "log_directory_name":                                  "startTime",
     "post": [
-        "python compute_kpis.py",
-        "python plot.py"
+        "python compute_kpis.py"
     ]
 }

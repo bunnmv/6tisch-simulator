@@ -66,7 +66,6 @@ class Radio(object):
         assert self.onGoingTransmission is None
         assert u'type' in packet
         assert u'mac'  in packet
-
         # record the state of the radio
         self.state   = d.RADIO_STATE_TX
         self.channel = channel

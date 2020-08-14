@@ -69,7 +69,6 @@
     "logging":                                             "all",
     "log_directory_name":                                  "startTime",
     "post": [
-        "python compute_kpis.py",
-        "python plot.py"
+        "python compute_kpis.py"
     ]
 }

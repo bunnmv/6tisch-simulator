@@ -74,7 +74,8 @@ class AppBase(object):
             SimEngine.SimLog.LOG_APP_RX,
             {
                 u'_mote_id': self.mote.id,
-                u'packet'  : packet
+                u'packet'  : packet,
+                u'config'  : {'slot_duration': self.settings.tsch_slotDuration}
             }
         )
 
@@ -160,7 +161,8 @@ class AppRoot(AppBase):
             SimEngine.SimLog.LOG_APP_RX,
             {
                 u'_mote_id': self.mote.id,
-                u'packet'  : packet
+                u'packet'  : packet,
+                u'config'  : {'slot_duration': self.settings.tsch_slotDuration}
             }
         )
 
@@ -199,6 +201,25 @@ class AppPeriodic(AppBase):
 
     #======================== public ==========================================
 
+    def _schedule_firt_transmission_back_off(self):
+        #if first scheduling is set it means mote is ready to transmit.
+        # We can create a window based on its ID so motes start transmitting at the same time.
+        window  = self.settings.app_backoffWindow + self.mote.id*100
+
+        # motes start after the backof window at a random interval (has to be the same for both runs)
+        # window = self.settings.app_backoffWindow + random.random();
+        current_time = self.settings.tsch_slotDuration*self.engine.getAsn()
+
+        delay = window - current_time
+        if delay < 0:
+            # here it can no be guaranted the application will provide
+            # the packet at the same time as both interfaces will have different disconection periods
+            delay = self.settings.app_pkPeriod
+
+        print('\nasn: ',self.engine.getAsn(), 'mote: ', self.mote.id, '\nschedule TX: ', window,'\ncurrent time:', current_time, '\ndelay', delay)
+
+        return delay
+
     def _schedule_transmission(self):
         assert self.settings.app_pkPeriod >= 0
         if self.settings.app_pkPeriod == 0:
@@ -206,20 +227,14 @@ class AppPeriodic(AppBase):
 
         if self.sending_first_packet:
             # compute initial time within the range of [next asn, next asn+pkPeriod]
-            # delay = self.settings.tsch_slotDuration + (self.settings.app_pkPeriod * random.random())
-            # delay = self.settings.app_backoffWindow
 
-            #if first scheduling is set it means mote is ready to transmit. We can create a window based on its ID so motes start transmitting at the same time.
-            window  = self.settings.app_backoffWindow + self.mote.id*100
+            if self.settings.app_backoffWindow:
+                delay = self._schedule_firt_transmission_back_off()
 
-            current_time = self.settings.tsch_slotDuration*self.engine.getAsn()
-            delay = window - current_time
-            if delay < 0:
-                # here it can no be guaranted the application will provide
-                # the packet at the same time as both interfaces will have different disconection periods
-                    delay = self.settings.app_pkPeriod
-                    
-            print('\nasn: ',self.engine.getAsn(), 'mote: ', self.mote.id, '\nschedule TX: ', window,'\ncurrent time:', current_time, '\ndelay', delay)
+            else:
+
+                delay = self.settings.tsch_slotDuration + (self.settings.app_pkPeriod * random.random())
+                               
 
             self.log(
                 SimEngine.SimLog.LOG_APP_SCH_FIRST,
@@ -235,13 +250,20 @@ class AppPeriodic(AppBase):
         else:
             # compute random delay
             assert self.settings.app_pkPeriodVar < 1
-            delay = self.settings.app_pkPeriod * (1 + random.uniform(-self.settings.app_pkPeriodVar, self.settings.app_pkPeriodVar))
+
+            #consider bigger slotframe jitter
+            if self.settings.band == '2.4Ghz':
+                delay = self.settings.app_pkPeriod
+            else:
+                delay = self.settings.app_pkPeriod * (1 + random.uniform(-self.settings.app_pkPeriodVar, self.settings.app_pkPeriodVar))
+
             self.log(
             SimEngine.SimLog.LOG_APP_SCH_SINGLE,
                 {
                     u'_mote_id': self.mote.id,
                     u'appcounter': self.appcounter,
                     u'timestamp': self.engine.getAsn(),
+                    u'delay': delay,
                 }
             )
 
