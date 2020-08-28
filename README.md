@@ -1,10 +1,15 @@
+# Adaption to The 6TiSCH Simulator
+
+* Marcus Bunn (marcus.bunn@posgrad.ufsc.br)
+
+## Key Additions
+
+1. Two roots mode
+2. 866Mhz interface
+3. Auto connectivity mode
+4. AppPeriodicDelayed application
+
 # The 6TiSCH Simulator
-
-Branch    | Build Status
---------- | -------------
-`master`  | [![Build Status](https://openwsn-builder.paris.inria.fr/buildStatus/icon?job=6TiSCH%20Simulator/master)](https://openwsn-builder.paris.inria.fr/job/6TiSCH%20Simulator/job/master/)
-`develop` | [![Build Status](https://openwsn-builder.paris.inria.fr/buildStatus/icon?job=6TiSCH%20Simulator/develop)](https://openwsn-builder.paris.inria.fr/job/6TiSCH%20Simulator/job/develop/)
-
 Core Developers:
 
 * Yasuyuki Tanaka (yasuyuki.tanaka@inria.fr)
@@ -25,6 +30,10 @@ Contributers:
 If you publish an academic paper using the results of the 6TiSCH Simulator, please cite:
 
 E. Municio, G. Daneels, M. Vucinic, S. Latre, J. Famaey, Y. Tanaka, K. Brun, K. Muraoka, X. Vilajosana, and T. Watteyne, "Simulating 6TiSCH Networks", Wiley Transactions on Emerging Telecommunications (ETT), 2019; 30:e3494. https://doi.org/10.1002/ett.3494
+
+And
+
+M.Bunn, R.Souza, G.Moritz, "Channel diversity on 6TiSCH networks"
 
 ## Scope
 
@@ -69,7 +78,7 @@ While 6TiSCH Simulator has been tested with Python 2.7, it should work with Pyth
    ```
 1. Install the Python dependencies:
    `cd simulator` and `pip install -r requirements.txt`
-1. Execute `runSim.py` or start the GUI:
+2. Execute `runSim.py`:
     * runSim.py
        ```
        $ cd bin
@@ -78,68 +87,8 @@ While 6TiSCH Simulator has been tested with Python 2.7, it should work with Pyth
         * a new directory having the timestamp value as its name is created under
           `bin/simData/` (e.g., `bin/simData/20181203-161254-775`)
         * raw output data and raw charts are stored in the newly created directory
-    * GUI
-       ```
-       $ gui/backend/start
-       Starting the backend server on 127.0.0.1:8080
-       ```
-        * access http://127.0.0.1:8080 with a web browser
-        * raw output data are stored under `gui/simData`
-        * charts are NOT generated when the simulator is run via GUI
-
-1. Take a look at `bin/config.json` to see the configuration of the simulations you just ran.
-
-The simulator can be run on a cluster system. Here is an example for a cluster built with OAR and Conda:
-
-1. Edit `config.json`
-    * Set `numCPUs` with `-1` (use all the available CPUs/cores) or a specific number of CPUs to be used
-    * Set `log_directory_name` with `"hostname"`
-1. Create a shell script, `runSim.sh`, having the following lines:
-
-        #!/bin/sh
-        #OAR -l /nodes=1
-        source activate py27
-        python runSim.py
-
-1. Make the shell script file executable:
-   ```
-   $ chmod +x runSim.sh
-   ```
-1. Submit a task for your simulation (in this case, 10 separate simulation jobs are submitted):
-   ```
-   $ oarsub --array 10  -S "./runSim.sh"
-   ```
-1. After all the jobs finish, you'll have 10 log directories under `simData`, each directory name of which is the host name where a job is executed
-1. Merge the resulting log files into a single log directory:
-   ```
-   $ python mergeLogs.py
-   ```
-
-If you want to avoid using a specific host, use `-p` option with `oarsub`:
-```
-$ oarsub -p "not host like 'node063'" --array 10 -S "./runSim.sh"
-```
-In this case, `node063` won't be selected for submitted jobs.
-
-The following commands could be useful to manage your jobs:
-
-* `$ oarstat`: show all the current jobs
-* `$ oarstat -u`: show *your* jobs
-* `$ oarstat -u -f`: show details of your jobs
-* `$ oardel 87132`: delete a job whose job ID is 87132
-* `$ oardel --array 87132`: delete all the jobs whose array ID is 87132
-
-You can find your job IDs and array ID in `oarsub` outputs:
-
-```
-$ oarsub --array 4 -S "runSim.sh"
-...
-OAR_JOB_ID=87132
-OAR_JOB_ID=87133
-OAR_JOB_ID=87134
-OAR_JOB_ID=87135
-OAR_ARRAY_ID=87132
-```
+        
+Take a look at `bin/config.json` to see the configuration of the simulations you just ran.
 
 ## Code Organization
 
@@ -196,6 +145,7 @@ The `config` parameter can contain:
 }
 ```
 
+
 * the configuration file is a valid JSON file
 * `version` is the version of the configuration file format; only 0 for now.
 * `execution` specifies the simulator's execution
@@ -210,47 +160,55 @@ The `config` parameter can contain:
 
 See `bin/config.json` to find  what parameters should be set and how they are configured.
 
+## Additional Configs
+
+### Application:
+
+```
+
+"app_backoffWindow":                           6000, 
+"app_backoffWindowType":                       "equal",
+```
+
+* `app_backoffWindow`: Delays mote generation packet init process by this value in seconds. Orinally as soon as the mote would join the netowork it would start sending packets.
+* `app_backoffWindowType`: "equal"|"leadder" - Select if motes start gradually joining the network, "leadder", or if they do it at the same time "equal".
+
+### Deploy & connectivity
+```
+
+"deploy":                                      "linear", 
+"motes_by_line":                               10,
+"mote_distance":                               null, 
+"roots":                                       [0],
+"band":                                        "2.4Ghz"
+
+```
+
+* `deploy`: Type of deploy on Auto connectivity (linear|random|split-linear)
+* `motes_by_line`: How many motes should be deployed on a single line. If numbers of motes are bigger than motes_by_line a additional rows are created until the mote list is complete.
+* `mote_distance`: Specifies the distance between each mote, on both coordinates. If motes_by_line is set, mote_distance is overwriten to be square_side_distance/motes_by_line. If motes_by_line is null, mote_distance is used. **Motes_by_line takes precedence**
+* `roots`: Array specifying root id's. **Maximumn 2 roots**
+* `band`: Operation band, '2.4Ghz'|'868Mhz'
+
+
 ### more on connectivity models
 
-#### using a *k7* connectivity model
+#### using a *Auto* connectivity model
 
-`k7` is a popular format for connectivity traces.
-You can run the simulator using connectivity traces in your K7 file instead of using the propagation model.
+There are 3 different deploy methods available
 
-```
-{
-    ...
-    "settings": {
-        "conn_class": "K7"
-        "conn_trace": "../traces/grenoble.k7.gz"
-    },
-    ...
-}
-```
-
-* `conn_class` should be set with `"K7"`
-* `conn_trace` should be set with your K7 file path
-
-Requirements:
-
-* the number of nodes in the simulation must match the number of nodes in the trace file.
-* the trace duration should be longer that 1 hour has the first hour is used for initialization
+* random: Same as Random connectivity model
+* linear: Deploy motes with linear distance, all spaced with the same distance.
+* split-linear: **Two Roots only** divides the deploy on two networks and splits them to left and right of the deploy area.
 
 ### more on applications
 
-`AppPeriodic` and `AppBurst` are available.
+`AppPeriodic`, `AppBurst` and `AppPeriodicDelayed` are available.
 
 ### configuration file format validation
 
 The format of the configuration file you pass is validated before starting the simulation. If your configuration file doesn't comply with the format, an `ConfigfileFormatException` is raised, containing a description of the format violation. The simulation is then not started.
 
-## GUI / 6TiSCH Simulator WebApp
-The repository of 6TiSCH Simulator has only artifacts of 6TiSCH Simulator WebApp.
-
-Full source code of the webapp is hosted at [https://github.com/yatch/6tisch-simulator-webapp/](https://github.com/yatch/6tisch-simulator-webapp/).
-[WEBAPP_COMMIT_INFO.txt](./gui/WEBAPP_COMMIT_INFO.txt) has the commit (version) of the webapp code that generates the files under `gui`.
-
-![Screenshot of GUI](figs/gui.png)
 
 ## About 6TiSCH
 
