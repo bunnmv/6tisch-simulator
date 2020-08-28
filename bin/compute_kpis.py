@@ -25,6 +25,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import copy
+import argparse
 
 # =========================== defines =========================================
 
@@ -534,7 +535,7 @@ def kpis_all(inputfile):
            
             # check if the packet was already transmited previously to override it
             # if the package was sent o a different asn by another interface it means that the applications are not sync
-            # or that the mote unjoined the DODAG. IN order to this, a margin is considered, and the Lowest ASN is considered.
+            # or that the mote unjoined the DODAG. IN order to fix this, a margin is considered, and the Lowest ASN is considered.
 
             if 'tx_seconds' in allstats[run_id][mote_id]['upstream_pkts'][appcounter]:
                 #consider a one period window max
@@ -642,19 +643,24 @@ def kpis_all(inputfile):
                         motestats['lifetime_AA_years'] = (BATTERY_AA_CAPACITY_mAh*1000/float(motestats['avg_current_uA']))/(24.0*365)
                 if motestats['join_asn'] is not None:
                     # latencies, upstream_num_tx, upstream_num_rx, upstream_num_lost
-                    for (appcounter, pktstats) in list(allstats[run_id][mote_id]['upstream_pkts'].items()):
-                        # print(appcounter,'\n', pktstats,'\n')
-                        motestats['tx_seconds']+=[pktstats['tx_seconds']]
-                        motestats['upstream_num_tx']      += 1
-                        if 'rx_asn' in pktstats:
-                            motestats['upstream_num_rx']  += 1
-                            # thislatency = (pktstats['rx_asn']-pktstats['tx_asn'])*file_settings['tsch_slotDuration']
-                            # thislatency = (pktstats['rx_asn']-pktstats['tx_asn'])*pktstats['slot_duration']
-                            thislatency = pktstats['latency']
-                            motestats['latencies']  += [thislatency]
-                            motestats['hops']       += [pktstats['hops']]
-                        else:
-                            motestats['upstream_num_lost'] += 1
+                    if len(list(allstats[run_id][mote_id]['upstream_pkts'].keys())) > 5:
+                        treshold = max(list(allstats[run_id][mote_id]['upstream_pkts'].keys()))-5
+
+                    for (appcounter, pktstats) in list(allstats[run_id][mote_id]['upstream_pkts'].items()):                    
+                        #ignore last packets ( last 5 from each mote)
+                        if appcounter <= treshold:
+                            motestats['tx_seconds']+=[pktstats['tx_seconds']]
+                            motestats['upstream_num_tx']      += 1
+                            if 'rx_asn' in pktstats:
+                                motestats['upstream_num_rx']  += 1
+                                # thislatency = (pktstats['rx_asn']-pktstats['tx_asn'])*file_settings['tsch_slotDuration']
+                                # thislatency = (pktstats['rx_asn']-pktstats['tx_asn'])*pktstats['slot_duration']
+                                thislatency = pktstats['latency']
+                                motestats['latencies']  += [thislatency]
+                                motestats['hops']       += [pktstats['hops']]
+                            else:
+                                print('\n', mote_id, ' Lost packet -> ', appcounter, '\n')
+                                motestats['upstream_num_lost'] += 1
                     if (motestats['upstream_num_rx'] > 0) and (motestats['upstream_num_tx'] > 0):
                         motestats['latency_min_s'] = min(motestats['latencies'])
                         motestats['latency_avg_s'] = sum(motestats['latencies'])/float(len(motestats['latencies']))
@@ -775,21 +781,34 @@ def kpis_all(inputfile):
     plot_deploy(allstats[0],file_settings)
     return allstats
 
+
+def parse_args():
+    # parse options
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--inputfolder',
+        help       = 'The simulation result folder.',
+        default    = None,
+    )
+    return parser.parse_args()
+
 # =========================== main ============================================
 
-def main():
+def main(options):
+
+
     global subfolder
     # FIXME: This logic could be a helper method for other scripts
     # Identify simData having the latest results. That directory should have
     # the latest "mtime".
-    if len(sys.argv) == 1 :
-        subfolders = list(
-            [os.path.join('simData', x) for x in os.listdir('simData')]
-        )
-        subfolder = max(subfolders, key=os.path.getmtime)
+
+    if options.inputfolder:
+        subfolder = options.inputfolder
     else:
-        subfolder = os.path.join('simData', str(sys.argv[1]))
-        
+        #defatult to simData
+        subfolders = list([os.path.join('simData', x) for x in os.listdir('simData')])
+        subfolder = max(subfolders, key=os.path.getmtime)
+    print(subfolder)
     if len(glob.glob(os.path.join(subfolder, '*.dat'))):
         for infile in glob.glob(os.path.join(subfolder, '*.dat')):
             print('generating KPIs for {0}'.format(infile))
@@ -810,4 +829,7 @@ def main():
         print('Path does not contain ".dat" file')
 
 if __name__ == '__main__':
-    main()
+
+    options = parse_args()
+
+    main(options)
