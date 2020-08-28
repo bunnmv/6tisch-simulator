@@ -870,12 +870,15 @@ class ConnectivityMatrixK7(ConnectivityMatrixBase):
         return row
 
 
-class ConnectivityMatrixRandom(ConnectivityMatrixBase):
-    """Random (topology) connectivity using the Pister-Hack model
 
-    Note that it doesn't guarantee every motes has always at least as
-    many neighbors as 'conn_random_init_min_neighbors', who have good
-    PDR values with the mote.
+class ConnectivityMatrixAuto(ConnectivityMatrixBase):
+    """Auto (topology) connectivity using the Pister-Hack model
+
+    Topology is defined by the function passed as parameter, values can be:
+    -linear
+    -linear-split
+    -circular
+    -random
 
     Computed PDR and RSSI are computed on the fly; they could vary at
     every transmission.
@@ -916,19 +919,25 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
         init_min_pdr       = self.settings.conn_random_init_min_pdr
         init_min_neighbors = self.settings.conn_random_init_min_neighbors
         # step = round(square_side/self.settings.exec_numMotes,4)
-        
+        x_step = 0
+        y_step = 0
+        if self.settings.deploy != 'random':
+            if self.settings.mote_distance:
+                # enforce distance set on config
+                y_step = self.settings.mote_distance
+                x_step = y_step
 
-        if self.settings.motes_by_line:
-            assert self.settings.motes_by_line > 1
-            #should be either null or a value that represents the amount of lines used
-            x_step = round(square_side/(self.settings.motes_by_line-1),4)
-            # TODO: allow a square method that enforces ystep to be equal to x_step enforced by the self.settings.motes_by_line
-            y_step = x_step
-        else:
-            # use mote distance.
-            assert self.settings.mote_distance
-            y_step = self.settings.mote_distance
-            x_step = y_step
+            elif self.settings.motes_by_line:
+                assert self.settings.motes_by_line > 1
+                #should be either null or a value that represents the amount of lines used
+                x_step = round(square_side/(self.settings.motes_by_line-1),4)
+                y_step = x_step
+
+            else:
+                # consider that all motes should be displayed as a single row
+                # row in the middle of the square
+                x_step = round(square_side/(self.settings.exec_numMotes-1),4)
+                y_step = round(square_side/2,3)
 
         assert init_min_neighbors <= self.settings.exec_numMotes
 
@@ -1113,7 +1122,6 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
         global aux_counter
         global root_coord
 
-
         mote_is_deployed = False
 
         middle = round(square_side/2,3)
@@ -1185,27 +1193,26 @@ class ConnectivityMatrixRandom(ConnectivityMatrixBase):
 
         mote_is_deployed = False
        
-        # ammount of motes in a single row.
-        # there is a new variable for this. Use that. settings.motes_by_line
+        # ammount of motes in a single row --motes_by_line.
         mote_fit = float(math.floor(square_side/x_step))
 
-        if mote_qty > mote_fit:
+        if mote_qty > mote_fit+1:
             return self._calculate_linear_matrix_coordinates(square_side,mote_id,x_step,y_step,mote_qty,mote_fit)
+        
 
+        # As its not a matrix, motes are deployed on a single row in the middle of the squared region
 
-        #integer related to collumns
+        middle = round(square_side/2,3)
+
+        #integer that controls the collumns deploy
 
         col_aux = (aux_counter%(mote_fit+1))
 
-        # integer related to the amount of motes in a single square side.
-        # if rows = 1 there will be a second row only if the amount of motes do not fit
-        # if rows > 1 the motes are divided in this quanity of rows while behaving the step.
-        row_aux = float(math.floor(aux_counter/(mote_fit+1)))
 
         # coordinates
         x_coord = round(col_aux*x_step,3)
 
-        coord  =  (x_coord,y_step)
+        coord  =  (x_coord,middle)
 
         if mote_id in self.settings.roots:
             # coord = (mote_id*square_side, (aux_counter%roots_per_row)+y_offset)
