@@ -43,11 +43,15 @@ def main(options):
 				subfolder_2_4Ghz = item
 			elif '868Mhz' in item:
 				subfolder_868Mhz = item
+		
+
+		assert subfolder_2_4Ghz
+		assert subfolder_868Mhz
+
 		print('\n##### FOUND NESTED 2.4Ghz folder -> ', subfolder_2_4Ghz)
 		print('\n##### FOUND NESTED 868Mhz folder -> ', subfolder_868Mhz)
-
 	else:
-		print('--inputfolder is mandatory, should contain both 2.4Ghz and 868Mhz directories')
+		print('\n##### --inputfolder PARAM is mandatory, should contain both 2.4Ghz and 868Mhz directories\n')
 		assert false
         #defatult to simData
         
@@ -155,10 +159,22 @@ def main(options):
 	os.remove(new_dat_868MhzPath)
 
 
+	#delete 2.4 dat from original
+	print('\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_2_4Ghz)
+	os.remove(dat_2_4Ghz)
+
+
+	#delete 868 dat from original
+	print('\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_868Mhz)
+	os.remove(dat_868Mhz)
+
 	
-	print('\n##### HELPER FUNCTION DONE')
+	print('\n##### HELPER SCRIPT DONE #####')
+
 	print('\n##### CALL python compute_kpis.py')
-	print('\n##### CALL python plot.py')
+
+	print('\n##### CALL python plot.py\n')
+
 	# Path(os.path.dirname(os.path.abspath(subfolder))).mkdir(parents=True, exist_ok=True)
 	# Path("/my/directory").mkdir(parents=True, exist_ok=True)
 
