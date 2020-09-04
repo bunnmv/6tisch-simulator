@@ -16,6 +16,8 @@ import numpy as np
 from pathlib import Path
 import argparse
 from shutil import copy
+import subprocess
+
 
 def parse_args():
     # parse options
@@ -30,12 +32,17 @@ def parse_args():
 
 def main(options):
 
+	print('\n\n##### INDENT ON TAB ######')
 
 	global subfolder
 
 	if options.inputfolder:
 		subfolder = options.inputfolder
-		print('\n##### START JOIN METRIC HELPER FOR -> ', subfolder)
+
+		if subfolder[-1] != '/':
+			subfolder = subfolder+'/'
+
+		print('\n\n##### START JOIN METRIC HELPER FOR -> ', subfolder)
 
 		subfolders = list([os.path.join(subfolder, x) for x in os.listdir(subfolder)])
 		for item in subfolders:
@@ -48,10 +55,10 @@ def main(options):
 		assert subfolder_2_4Ghz
 		assert subfolder_868Mhz
 
-		print('\n##### FOUND NESTED 2.4Ghz folder -> ', subfolder_2_4Ghz)
-		print('\n##### FOUND NESTED 868Mhz folder -> ', subfolder_868Mhz)
+		print('\n\n##### FOUND NESTED 2.4Ghz folder -> ', subfolder_2_4Ghz)
+		print('\n\n##### FOUND NESTED 868Mhz folder -> ', subfolder_868Mhz)
 	else:
-		print('\n##### --inputfolder PARAM is mandatory, should contain both 2.4Ghz and 868Mhz directories\n')
+		print('\n\n##### --inputfolder PARAM is mandatory, should contain both 2.4Ghz and 868Mhz directories\n')
 		assert false
         #defatult to simData
         
@@ -75,15 +82,15 @@ def main(options):
 
 	# filename2 = subfolder+"test/test2.txt"
 	if not os.path.exists(os.path.dirname(dir_to_create)):
-		print('\n##### CREATING join_metric FOLDER')
+		print('\n\n##### CREATING join_metric FOLDER')
 		try:
 			os.makedirs(os.path.dirname(dir_to_create))
-			print('\n##### CREATED join_metric FOLDER')
+			print('\n\n##### CREATED join_metric FOLDER')
 		except OSError as exc: # Guard against race condition
 			if exc.errno != errno.EEXIST:
 				raise
 	else:
-		print('\n##### join_metric FOLDER ALREADY EXISTS')
+		print('\n\n##### join_metric FOLDER ALREADY EXISTS')
 
 	# with open(filename, "w") as f:
 	# 	f.write("FOOBAR eee")
@@ -93,10 +100,10 @@ def main(options):
 
 
 	#copy 2.4 config.json to join metric folder
-	print('\n##### COPY 2.4Ghz config.json TO join_metric FOLDER')
+	print('\n\n##### COPY 2.4Ghz config.json TO join_metric FOLDER')
 	copy(config_2_4Ghz, dir_to_create)
 
-	print('\n##### COPY 2.4Ghz .dat.kpi AND .dat TO join_metric FOLDER')
+	print('\n\n##### COPY 2.4Ghz .dat.kpi AND .dat TO join_metric FOLDER')
 
 	#copy 2.4 dat to join metric folder
 	copy(kpi_2_4Ghz, dir_to_create)
@@ -110,13 +117,13 @@ def main(options):
 
 
 	#rename 2.4Ghz dat.kpi
-	print('\n##### RENAME exec_numMotes.dat.kpi to 2_4Ghz.dat in join_metric FOLDER')
+	print('\n\n##### RENAME exec_numMotes.dat.kpi to 2_4Ghz.dat in join_metric FOLDER')
 	os.rename(new_kpi_2_4GhzPath, dir_to_create+'2_4Ghz.dat.kpi')
 
 	
 
 	#rename 2.4 dat to join metric
-	print('\n##### RENAME exec_numMotes.dat to 2.4Ghz.dat in join_metric FOLDER')
+	print('\n\n##### RENAME exec_numMotes.dat to 2.4Ghz.dat in join_metric FOLDER')
 	os.rename(new_dat_2_4GhzPath, dir_to_create+'join_metric.dat')
 
 
@@ -130,7 +137,7 @@ def main(options):
 
 
 
-	print('\n##### COPY 868Mhz .dat.kpi AND .dat TO join_metric FOLDER')
+	print('\n\n##### COPY 868Mhz .dat.kpi AND .dat TO join_metric FOLDER')
 
 	#copy 868 dat to join metric folder
 	copy(kpi_868Mhz, dir_to_create)
@@ -146,34 +153,40 @@ def main(options):
 
 
 	#concat 868 to join_metric(renamed from 2.4 dat ) to create join metric dat file
-	print('\n##### APPEND 868Mhz dat file to 2.4Ghz file')
+	print('\n\n##### APPEND 868Mhz dat file to 2.4Ghz file')
 	os.system("cat "+ new_dat_868MhzPath +" >>" + dir_to_create+'join_metric.dat')
 
 	
 	#rename 868 dat.kpi
-	print('\n##### RENAME exec_numMotes.dat.kpi to 868Mhz.dat.kpi in join_metric FOLDER')
+	print('\n\n##### RENAME exec_numMotes.dat.kpi to 868Mhz.dat.kpi in join_metric FOLDER')
 	os.rename(new_kpi_868MhzPath, dir_to_create+'868Mhz.dat.kpi')
 
 	#delete 868 dat
-	print('\n##### DELETE 868Mhz exec_numMotes.dat from join_metric FOLDER')
+	print('\n\n##### DELETE 868Mhz exec_numMotes.dat from join_metric FOLDER')
 	os.remove(new_dat_868MhzPath)
 
 
 	#delete 2.4 dat from original
-	print('\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_2_4Ghz)
+	print('\n\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_2_4Ghz)
 	os.remove(dat_2_4Ghz)
 
 
 	#delete 868 dat from original
-	print('\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_868Mhz)
+	print('\n\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_868Mhz)
 	os.remove(dat_868Mhz)
 
 	
-	print('\n##### HELPER SCRIPT DONE #####')
+	print('\n\n##### HELPER SCRIPT DONE #####')
 
-	print('\n##### CALL python compute_kpis.py')
+	print('\n\n##### CALL python compute_kpis.py\n')
 
-	print('\n##### CALL python plot.py\n')
+	rc = subprocess.call("python compute_kpis.py --inputfolder {0}".format(dir_to_create), shell=True)
+	assert rc==0
+
+
+	print('\n\n##### CALL python plot.py\n')
+	rc = subprocess.call("python plot.py --inputfolder {0}".format(dir_to_create), shell=True)
+	assert rc==0
 
 	# Path(os.path.dirname(os.path.abspath(subfolder))).mkdir(parents=True, exist_ok=True)
 	# Path("/my/directory").mkdir(parents=True, exist_ok=True)

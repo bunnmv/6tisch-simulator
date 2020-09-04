@@ -9,6 +9,7 @@ from builtins import range
 from builtins import object
 from abc import abstractmethod
 import random
+import math
 
 # Mote sub-modules
 
@@ -132,7 +133,6 @@ class AppBase(object):
         )
 
         # send
-        # print('APP > TX > mote:', self.mote.id,self.engine.getAsn())
         self.mote.sixlowpan.sendPacket(packet)
 
 class AppRoot(AppBase):
@@ -204,13 +204,26 @@ class AppPeriodic(AppBase):
     def _schedule_firt_transmission_back_off(self):
         #if first scheduling is set it means mote is ready to transmit.
         # We can create a window based on its ID so motes start transmitting at the same time.
-        window  = self.settings.app_backoffWindow + self.mote.id*100
+
+        # 'equal' or 'ladder'
+        if self.settings.app_backoffWindowType == 'ladder':
+            window  = self.settings.app_backoffWindow + self.mote.id*100
+
+        else:
+            #equal
+            window  = self.settings.app_backoffWindow
 
         # motes start after the backof window at a random interval (has to be the same for both runs)
         # window = self.settings.app_backoffWindow + random.random();
         current_time = self.settings.tsch_slotDuration*self.engine.getAsn()
 
+        # delay = window - current_time
+
         delay = window - current_time
+
+        # force delay to be multiple of timeslot.
+        delay = self.settings.tsch_slotDuration * round( delay / self.settings.tsch_slotDuration )
+
         if delay < 0:
             # here it can no be guaranted the application will provide
             # the packet at the same time as both interfaces will have different disconection periods
@@ -251,11 +264,16 @@ class AppPeriodic(AppBase):
             # compute random delay
             assert self.settings.app_pkPeriodVar < 1
 
-            #consider bigger slotframe jitter
+            #adjust slofframe rounding
             if self.settings.band == '2.4Ghz':
                 delay = self.settings.app_pkPeriod
             else:
-                delay = self.settings.app_pkPeriod * (1 + random.uniform(-self.settings.app_pkPeriodVar, self.settings.app_pkPeriodVar))
+                # if the current time is not consider the slot difference continues to grow
+                current_time = self.settings.tsch_slotDuration*self.engine.getAsn()
+                delay = (round(current_time)+ self.settings.app_pkPeriod) - current_time
+
+                #make it divisible by the slot
+                delay = self.settings.tsch_slotDuration * round( delay / self.settings.tsch_slotDuration )
 
             self.log(
             SimEngine.SimLog.LOG_APP_SCH_SINGLE,

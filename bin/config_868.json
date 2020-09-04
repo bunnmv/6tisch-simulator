@@ -6,22 +6,23 @@
     },
     "settings": {
         "combination": {
-            "exec_numMotes":                               [10]
+            "exec_numMotes":                               [80]
         },
         "regular": {
             "exec_numSlotframesPerRun":                    null,
-            "exec_minutesPerRun":                          240,
-            "exec_randomSeed":                             2074270055270395,
+            "exec_minutesPerRun":                          120,
+            "exec_randomSeed":                             2054070055570395,
 
             "secjoin_enabled":                             true,
 
             "app":                                         "AppPeriodic",
-            "app_pkPeriod":                                60,
+            "app_pkPeriod":                                10,
             "app_pkPeriodVar":                             0.0,
             "app_pkLength":                                90,
             "app_burstTimestamp":                          null,
             "app_burstNumPackets":                         0,
-            "app_backoffWindow":                           1600, 
+            "app_backoffWindow":                           5400, 
+            "app_backoffWindowType":                       "equal",
 
             "rpl_of":                                      "OF0",
             "rpl_daoPeriod":                               60,
@@ -42,16 +43,16 @@
             "tsch_clock_frequency":                        32768,
             "tsch_keep_alive_interval":                    10,
             "tsch_tx_queue_size":                          10,
-            "tsch_max_tx_retries":                         5,
+            "tsch_max_tx_retries":                         3,
 
 
             "radio_stats_log_period_s":                    60,
 
-            "conn_class":                                  "Random",
+            "conn_class":                                  "Auto",
             "conn_simulate_ack_drop":                      false,
 
             "conn_trace":                                  null,
-            "conn_random_square_side":                     0.1,
+            "conn_random_square_side":                     0.250,
             "conn_random_init_min_pdr":                    0,
             "conn_random_init_min_neighbors":              0,
 
@@ -59,7 +60,7 @@
 
             "motes_eui64":                                 [],
 
-            "deploy":                                      "random",
+            "deploy":                                      "linear",
             "motes_by_line":                               10, 
             "mote_distance":                               null,
             "roots":                                       [0],

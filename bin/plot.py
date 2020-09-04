@@ -82,7 +82,6 @@ def main(options):
 # =========================== helpers =========================================
 
 def plot_cdf(data, key, subfolder):
-    print('\nAAAAAAA\n', key,'\n')
     for k, values in data.items():
         # convert list of list to list
         if type(values[0]) == list:

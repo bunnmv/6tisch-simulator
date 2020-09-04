@@ -929,16 +929,19 @@ class ConnectivityMatrixAuto(ConnectivityMatrixBase):
 
             elif self.settings.motes_by_line:
                 assert self.settings.motes_by_line > 1
-                #should be either null or a value that represents the amount of lines used
-                x_step = round(square_side/(self.settings.motes_by_line-1),4)
+                #should be either null or a value that represents the amount of cols used
+                aux = round(square_side/(self.settings.motes_by_line-1),6)
+                x_step = math.floor(aux * 100000)/100000.0
                 y_step = x_step
 
             else:
                 # consider that all motes should be displayed as a single row
                 # row in the middle of the square
-                x_step = round(square_side/(self.settings.exec_numMotes-1),4)
+                aux = round(square_side/(self.settings.exec_numMotes-1),6)
+                x_step = math.floor(aux * 100000)/100000.0
                 y_step = round(square_side/2,3)
 
+        print(x_step)
         assert init_min_neighbors <= self.settings.exec_numMotes
 
         # determine coordinates of the motes
@@ -1124,7 +1127,7 @@ class ConnectivityMatrixAuto(ConnectivityMatrixBase):
 
         mote_is_deployed = False
 
-        middle = round(square_side/2,3)
+        middle = round(square_side/2,4)
         offset = middle + y_step/2
 
         if mote_id in self.settings.roots:
@@ -1144,10 +1147,10 @@ class ConnectivityMatrixAuto(ConnectivityMatrixBase):
         row_aux = float(math.floor(aux_counter/(mote_fit+1)))
 
         # coordinates
-        x_coord = round(col_aux*x_step,3)
+        x_coord = round(col_aux*x_step,4)
 
         if row_aux == 0:
-            y_coord = round(row_aux*y_step + offset,3)
+            y_coord = round(row_aux*y_step + offset,4)
         else:
             # here the motes are split to create rows poping from negative to positive values around 0 axis.
 
@@ -1163,12 +1166,12 @@ class ConnectivityMatrixAuto(ConnectivityMatrixBase):
             if not row_aux % 2:# EVEN numbers positive
 
                 # -1 is for correcting the values as the counter only increases.
-                y_coord = round((div_aux)*y_step + offset,3)
+                y_coord = round((div_aux)*y_step + offset,4)
                                 # y_coord = round((div_aux)*y_step + offset,3)+(row_aux*y_step)
 
 
             else : # odd numbers ( negative )
-                y_coord = round(-(div_aux*y_step) + offset,3)
+                y_coord = round(-(div_aux*y_step) + offset,4)
 
         
 
@@ -1209,7 +1212,7 @@ class ConnectivityMatrixAuto(ConnectivityMatrixBase):
         col_aux = (aux_counter%(mote_fit+1))
 
 
-        # coordinates
+        # coordinates 
         x_coord = round(col_aux*x_step,3)
 
         coord  =  (x_coord,middle)

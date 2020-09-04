@@ -144,7 +144,6 @@ RADIO_STATE_OFF                             = u'off'
 # EIGHT_SIX_EIGHT_MHZ = 1
 
 BAND = 0
-
 if not BAND:
 
 	TSCH_HOPPING_SEQUENCE = TSCH_HOPPING_SEQUENCE_TWO_DOT_FOUR

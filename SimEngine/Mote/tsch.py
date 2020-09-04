@@ -81,7 +81,7 @@ class Tsch(object):
         self.pending_bit_enabled            = False
         self.args_for_next_pending_bit_task = None
 
-        assert self.settings.phy_numChans <= len(d.TSCH_HOPPING_SEQUENCE)
+        assert self.settings.phy_numChans == len(d.TSCH_HOPPING_SEQUENCE)
         self.hopping_sequence = (
             d.TSCH_HOPPING_SEQUENCE[:self.settings.phy_numChans]
         )
