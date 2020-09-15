@@ -188,6 +188,10 @@ def main(options):
 	rc = subprocess.call("python plot.py --inputfolder {0}".format(dir_to_create), shell=True)
 	assert rc==0
 
+	print('\n\n##### CALL python kpi_to_xlsx.py\n')
+	rc = subprocess.call("python kpi_to_xlsx.py --inputfolder {0}".format(dir_to_create), shell=True)
+	assert rc==0
+
 	# Path(os.path.dirname(os.path.abspath(subfolder))).mkdir(parents=True, exist_ok=True)
 	# Path("/my/directory").mkdir(parents=True, exist_ok=True)
 
