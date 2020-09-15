@@ -107,7 +107,7 @@ LOG_DEPLOY_COORDINATES            = {u'type': u'conn.deploy',               u'ke
 # === propagation
 LOG_PROP_TRANSMISSION             = {u'type': u'prop.transmission',         u'keys': [u'channel',u'packet']}
 LOG_PROP_INTERFERENCE             = {u'type': u'prop.interference',         u'keys': [u'_mote_id',u'channel',u'lockon_transmission',u'interfering_transmissions']}
-LOG_PROP_DROP_LOCKON              = {u'type': u'prop.drop_lockon' ,         u'keys': [u'_mote_id',u'channel',u'lockon_transmission']}
+LOG_PROP_DROP_LOCKON              = {u'type': u'prop.drop_lockon' ,         u'keys': [u'_mote_id',u'channel',u'lockon_transmission',u'reason',u'lost_packet_type']}
 
 # === connectivity matrix
 LOG_CONN_MATRIX_K7_UPDATE         = {u'type': u'conn.matrix.update',        u'keys': [u'start_trace_position', u'end_trace_position', u'asn_of_next_update']}

@@ -312,16 +312,16 @@ class Connectivity(object):
                     receivedAck = self.engine.motes[listener_id].radio.rxDone(
                         packet=None,
                     )
-                    self.log(
-                        SimLog.LOG_PROP_DROP_LOCKON,
-                        {
+                    aux_obj = {
                             u'_mote_id': listener_id,
                             u'channel': lockon_transmission[u'channel'],
                             u'lockon_transmission': (
                                 lockon_transmission[u'packet']
-                            )
-                        }
-                    )
+                            ),
+                            u'reason': 'interference' if len(transmissions_by_channel[channel]) > 1 else 'low_pdr',
+                            u'lost_packet_type': lockon_transmission[u'packet']['type']
+                    }
+                    self.log(SimLog.LOG_PROP_DROP_LOCKON,aux_obj)
                     assert receivedAck is False
 
                 # done processing this listener
