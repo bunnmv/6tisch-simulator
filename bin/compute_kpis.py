@@ -55,6 +55,42 @@ def openfile(func):
 
 # =========================== helpers =========================================
 
+def plot_mote_queues(data,file_settings):
+    global subfolder
+    fig, ax = plt.subplots()
+    ax.boxplot(data.values(),showfliers=False)
+    ax.set_xticklabels(data.keys(), rotation=0, fontsize=3)
+
+    # plt.xticks(np.arange(0,len(data.keys())+1,5))
+
+    # ax.tick_params(axis="y", labelsize=20)
+    plt.ylabel('Queue')
+    plt.xlabel('mote ID')
+    plt.title('Packet TSCH queue by mote - {} '.format(file_settings['band']))
+    # print(len(data.keys()))
+    # print(len(list(data.keys())))
+    plt.savefig(os.path.join(subfolder, 'tsch_queue.png'),dpi=300)
+    plt.close()
+
+def plot_packet_retries(data,file_settings):
+    global subfolder
+    # formatData = {}
+    # for k,v in data.items():
+    #     formatData['mote_{}'.format(k)]=
+
+    #     {'mote1': list(retries_data.values()), 'mote2': list(retries_data.values())}
+    fig, ax = plt.subplots()
+    ax.boxplot(data.values(),showfliers=False)
+    ax.set_xticklabels(data.keys(), rotation=0, fontsize=3)
+
+    # ax.set_xticklabels(np.arange(0,len(data.keys())+1,5), rotation=0, fontsize=4)
+    # ax.set_xticklabels(np.arange(0,len(data.keys())+1))
+    # plt.xticks(np.arange(0,len(data.keys())+1,5))
+    plt.ylabel('Retries')
+    plt.xlabel('mote ID')
+    plt.title('Packet Retries by mote - {} '.format(file_settings['band']))
+    plt.savefig(os.path.join(subfolder, 'packet_retries.png'),dpi=300)
+    plt.close()
 
 def plot_motes_app_tx_seconds(data,file_settings,window='regular'):
     global subfolder
@@ -179,7 +215,11 @@ def init_mote():
         'lifetime_AA_years': None,
         'avg_current_uA': None,
         'tx_seconds': [],
-
+        'retries':{
+            'total':0,
+            'packets':{}
+        },
+        'tsch_queue_length':[]
     }
 
 def createSingleStats(stats,mote_id,motestats):
@@ -219,6 +259,19 @@ def createSingleStats(stats,mote_id,motestats):
     if 'tx_seconds' in motestats.keys():
         stats['tx_seconds'][mote_id] = motestats['tx_seconds']
 
+    #queue
+    if 'tsch_queue_length' in motestats.keys():
+        stats['tsch_queue_length'][mote_id] = motestats['tsch_queue_length']
+
+    #retries
+    if 'retries' in motestats.keys():
+        if motestats['retries']['packets']:
+            stats['retries'][mote_id] = []
+            for k,v in motestats['retries']['packets'].items():
+                # sum retries of its packets and retries made to others
+                stats['retries'][mote_id] += [v['mine']+v['other']]
+        else:
+            stats['retries'][mote_id]= [0]
     # }
 def createAllStats(stats):
     return {
@@ -495,10 +548,10 @@ def kpis_all(inputfile):
             # only log non-dagRoot join times
             if mote_id in file_settings['roots']:
                 continue
-            if not allstats[run_id][mote_id]['join_asn']:
-                print('first joined', mote_id, 'at ', asn)
-            else:
-                print('this mote was joined previously ->', mote_id, 'at ', allstats[run_id][mote_id]['join_asn'], 'now at ', asn)
+            # if not allstats[run_id][mote_id]['join_asn']:
+            #     print('first joined', mote_id, 'at ', asn)
+            # else:
+                # print('this mote was joined previously ->', mote_id, 'at ', allstats[run_id][mote_id]['join_asn'], 'now at ', asn)
 
             # populate
             assert allstats[run_id][mote_id]['sync_asn'] is not None
@@ -617,6 +670,43 @@ def kpis_all(inputfile):
 
             allstats[run_id][mote_id]['coordinates'] = logline['_coordinates']
 
+        elif logline['_type'] == SimLog.LOG_TSCH_QUEUE_LENGTH['type']:
+
+            allstats[run_id][mote_id]['tsch_queue_length'] += [logline['tx_queue_length']]
+
+
+        elif logline['_type'] == SimLog.LOG_TSCH_RETRY['type']:
+            mote_id    = logline['_mote_id']
+            allstats[run_id][mote_id]['retries']['total'] += 1
+
+            appcounter = logline['packet']['app']['appcounter']
+
+            if appcounter not in allstats[run_id][mote_id]['retries']['packets']:
+                allstats[run_id][mote_id]['retries']['packets'][appcounter] = {
+                        'mine': 0,
+                        'other': 0,
+                        'by_other':0
+                }
+            
+            originalSenderId = int(logline['packet']['net']['srcIp'][-2:].strip(':'),16)
+            if originalSenderId == mote_id:
+                #my packet
+                allstats[run_id][mote_id]['retries']['packets'][appcounter]['mine'] +=1
+            else:
+                #store retry on someone elses packet
+                allstats[run_id][mote_id]['retries']['packets'][appcounter]['other'] +=1
+
+                if appcounter not in allstats[run_id][originalSenderId]['retries']['packets']:
+                    allstats[run_id][originalSenderId]['retries']['packets'][appcounter] = {
+                            'mine': 0,
+                            'other': 0,
+                            'by_other':0
+                    }
+                #store on other mote that its packet was retransmited
+                allstats[run_id][originalSenderId]['retries']['packets'][appcounter]['by_other'] +=1
+
+
+
 
 
     # === compute advanced motestats
@@ -659,7 +749,7 @@ def kpis_all(inputfile):
                                 motestats['latencies']  += [thislatency]
                                 motestats['hops']       += [pktstats['hops']]
                             else:
-                                print('\n', mote_id, ' Lost packet -> ', appcounter, '\n')
+                                # print('\n', mote_id, ' Lost packet -> ', appcounter, '\n')
                                 motestats['upstream_num_lost'] += 1
                     if (motestats['upstream_num_rx'] > 0) and (motestats['upstream_num_tx'] > 0):
                         motestats['latency_min_s'] = min(motestats['latencies'])
@@ -698,7 +788,9 @@ def kpis_all(inputfile):
             'current_consumed':[],
             'lifetimes':[],
             'slot_duration':file_settings['tsch_slotDuration'],
-            'tx_seconds':{}
+            'tx_seconds':{},
+            'tsch_queue_length':{},
+            'retries':{}
 
         }
 
@@ -717,7 +809,9 @@ def kpis_all(inputfile):
                     'current_consumed':[],
                     'lifetimes':[],
                     'slot_duration':file_settings['tsch_slotDuration'],
-                    'tx_seconds':{}
+                    'tx_seconds':{},
+                    'tsch_queue_length':{},
+                    'retries':{}
                 }
 
         #-- compute stats
@@ -741,6 +835,14 @@ def kpis_all(inputfile):
          #plot tx packs seconds
     
         plot_motes_app_tx_seconds(stats['global']['tx_seconds'],file_settings)
+
+        #plot queue of first run 
+        plot_mote_queues(stats['global']['tsch_queue_length'],file_settings)
+
+
+        #plot packet retries of first run
+
+        plot_packet_retries(stats['global']['retries'],file_settings)
 
 
         #-- save stats
@@ -780,6 +882,7 @@ def kpis_all(inputfile):
     # plot deploy of first run
     plot_deploy(allstats[0],file_settings)
     return allstats
+
 
 
 def parse_args():
