@@ -381,6 +381,7 @@ class Tsch(object):
             # my TX queue is full
 
             # drop
+            # as data packets have no priority, all fall here
             self.mote.drop_packet(
                 packet  = packet,
                 reason  = SimEngine.SimLog.DROPREASON_TXQUEUE_FULL
@@ -388,6 +389,17 @@ class Tsch(object):
 
             # couldn't enqueue
             goOn = False
+
+        if packet and packet[u'type'] == d.PKT_TYPE_DATA:
+            #log tx queue
+            self.log(
+                SimEngine.SimLog.LOG_TSCH_QUEUE_LENGTH,
+                {
+                    u'_mote_id':  self.mote.id,
+                    u'tx_queue_length': len(self.txQueue),
+                }
+            )
+
 
         # check that I have cell to transmit on
         if goOn:
@@ -670,7 +682,21 @@ class Tsch(object):
 
                 # decrement 'retriesLeft' counter associated with that packet
                 assert self.pktToSend[u'mac'][u'retriesLeft'] >= 0
+
                 self.pktToSend[u'mac'][u'retriesLeft'] -= 1
+
+                
+                if self.pktToSend[u'type'] == d.PKT_TYPE_DATA:
+                    #my packet is going to be retransmited
+                    #log 
+                    self.log(
+                        SimEngine.SimLog.LOG_TSCH_RETRY,
+                        {
+                            u'_mote_id':  self.mote.id,
+                            u'packet':    self.pktToSend,
+                            u'retries_left': self.pktToSend[u'mac'][u'retriesLeft'],
+                        }
+                    )
 
                 # drop packet if retried too many time
                 if self.pktToSend[u'mac'][u'retriesLeft'] < 0:
