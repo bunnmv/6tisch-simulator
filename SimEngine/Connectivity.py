@@ -1317,6 +1317,8 @@ class PisterHackModel(object):
 
         self.settings = sim_settings
 
+        self.path_loss_expoenent = self.settings.conn_path_loss_exponent
+
         if self.settings.band == '2.4Ghz':
 
             self.FREQUENCY = self.TWO_DOT_FOUR_GHZ
@@ -1352,7 +1354,7 @@ class PisterHackModel(object):
         # sqrt and inverse of the free space path loss (fspl)
         free_space_path_loss = (
             old_div(self.SPEED_OF_LIGHT,
-            (4 * math.pi * distance * self.FREQUENCY))
+            (4 * math.pi * (distance**(math.sqrt(self.path_loss_expoenent)))* self.FREQUENCY))
         )
 
         # simple friis equation in Pr = Pt + Gt + Gr + 20log10(fspl)
