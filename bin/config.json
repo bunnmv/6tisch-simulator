@@ -10,7 +10,7 @@
         },
         "regular": {
             "exec_numSlotframesPerRun":                    null,
-            "exec_minutesPerRun":                          120,
+            "exec_minutesPerRun":                          60,
             "exec_randomSeed":                             2054070055570395,
 
             "secjoin_enabled":                             true,
@@ -22,7 +22,7 @@
             "app_burstTimestamp":                          null,
             "app_burstNumPackets":                         0,
             "app_backoffWindow":                           5400, 
-            "app_backoffWindowType":                       "equal",
+            "app_backoffWindowType":                       null,
 
             "rpl_of":                                      "OF0",
             "rpl_daoPeriod":                               60,
@@ -61,8 +61,8 @@
 
             "motes_eui64":                                 [],
 
-            "deploy":                                      "random",
-            "motes_by_line":                               null,   
+            "deploy":                                      "linear",
+            "motes_by_line":                               10,   
             "mote_distance":                               null,
             "roots":                                       [0],
             "band":                                        "2.4Ghz"

@@ -379,7 +379,15 @@ class Tsch(object):
                 )
             ):
             # my TX queue is full
-
+            if packet[u'type'] == d.PKT_TYPE_DATA:
+                #log tx queue
+                self.log(
+                    SimEngine.SimLog.LOG_TSCH_QUEUE_LENGTH,
+                    {
+                        u'_mote_id':  self.mote.id,
+                        u'tx_queue_length': len(self.txQueue),
+                    }
+                )
             # drop
             # as data packets have no priority, all fall here
             self.mote.drop_packet(

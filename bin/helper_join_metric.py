@@ -167,13 +167,13 @@ def main(options):
 
 
 	#delete 2.4 dat from original
-	print('\n\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_2_4Ghz)
-	os.remove(dat_2_4Ghz)
+	# print('\n\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_2_4Ghz)
+	# os.remove(dat_2_4Ghz)
 
 
-	#delete 868 dat from original
-	print('\n\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_868Mhz)
-	os.remove(dat_868Mhz)
+	# delete 868 dat from original
+	# print('\n\n##### DELETE 868Mhz exec_numMotes.dat from ->',subfolder_868Mhz)
+	# os.remove(dat_868Mhz)
 
 	
 	print('\n\n##### HELPER SCRIPT DONE #####')
